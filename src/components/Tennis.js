@@ -61,7 +61,7 @@ const Tennis = ({ activeTab }) => {
   return (
     <div className="nfl-schedule">
       <div className="week-selector">
-        <label>Latest Matches{latestDateStr ? ` – ${latestDateStr}` : ''}</label>
+        <label>Latest Matches{latestDateStr ? ` – ${latestDateStr}` : ' – Loading...'}</label>
       </div>
       <div className="markdown-container">
         <h4>

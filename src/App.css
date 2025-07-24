@@ -73,8 +73,6 @@ body {
   height: 100%;
   width: 100%;
   table-layout: fixed;
-  
-
 }
 
 th {
@@ -136,4 +134,26 @@ pre {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.section-title {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.game-table-secret {
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+  font-family: 'Space Mono';
+  font-size: 14.5px;
+  height: 100%;
+  width: 90%;
+  table-layout: fixed;
+  border-collapse: collapse; /* 🔑 */
+}
+
+.game-table-secret tbody tr {
+  border-bottom: 1px solid #ccc;
 }

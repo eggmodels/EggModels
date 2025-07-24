@@ -10,6 +10,7 @@ import NavBar from './components/NavBar';
 import Home from './components/Home'
 import Tennis from './components/Tennis'
 import Secret from './components/Secret';
+import Dashboard from './components/Dashboard';
 
 // AppWrapper inside App.js
 function AppWrapper() {
@@ -29,6 +30,7 @@ function AppWrapper() {
         <Route path="/tennis" element={<Tennis />} />
         <Route path='/secret' element={<Secret />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </>
   );

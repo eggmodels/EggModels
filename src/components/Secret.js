@@ -154,10 +154,10 @@ const Secret = () => {
       <h3>{statusMessage}</h3>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <h2>Status of Open Bets</h2>
+      <h2 className="section-title">Status of Open Bets</h2>
       <div className="games-container">
-        <div className="game-box">
-          <table className="game-table">
+        <div>
+          <table className="game-table-secret">
             <thead>
               <tr>
                 <th>Status</th>
@@ -180,17 +180,15 @@ const Secret = () => {
         </div>
       </div>
 
-      <h2>Bets Closed in Last 24 hrs</h2>
-      <p>Profit in last 24 hrs: {profitLast24.toFixed(2)}</p>
+      <h2 className="section-title">Bets Closed in Last 24 hrs</h2>
+      <p className="section-title">Profit in last 24 hrs: {profitLast24.toFixed(2)}</p>
       <div className="games-container">
         <div>
-          <table className="game-table">
+          <table className="game-table-secret">
             <thead>
               <tr>
                 <th>Match</th>
                 <th>Player Bet On</th>
-                <th>Line ID</th>
-                <th>Wager ID</th>
                 <th>Odds</th>
                 <th>Matched Stake</th>
                 <th>Profit</th>
@@ -201,8 +199,6 @@ const Secret = () => {
                 <tr key={bet.wager_id || bet.line_id}>
                   <td>{bet.name || "Unknown"}</td>
                   <td>{bet.player}</td>
-                  <td>{bet.line_id}</td>
-                  <td>{bet.wager_id}</td>
                   <td>{bet.odds}</td>
                   <td>{bet.matched_stake}</td>
                   <td>{bet.profit}</td>
@@ -213,10 +209,10 @@ const Secret = () => {
         </div>
       </div>
 
-      <h2>Bets Currently Open</h2>
+      <h2 className="section-title">Bets Currently Open</h2>
       <div className="games-container">
-        <div className="game-box">
-          <table className="game-table">
+        <div>
+          <table className="game-table-secret">
             <thead>
               <tr>
                 <th>Player Bet On</th>
