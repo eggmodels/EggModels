@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import nflScheduleData from '../python/nfl_2024/nflModel2024.json';
+import nflScheduleData from '../python/nfl_2025/nflModel2025.json';
 import '../App.css';
 
 const ScheduleNFL = ({ activeTab }) => {
     const [scheduleData, setScheduleData] = useState([]);
-    const [selectedWeek, setSelectedWeek] = useState(22);
+    const [selectedWeek, setSelectedWeek] = useState(15);
 
     useEffect(() => {
         // Use the imported JSON data directly

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
-import nflModel from '../python/nfl_2024/nflModel2024.json';
+import nflModel from '../python/nfl_2025/nflModel2025.json';
 import '../Rankings.css';
 import {
   Chart as ChartJS,

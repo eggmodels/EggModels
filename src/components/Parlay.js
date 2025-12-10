@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../Parlay.css';
-import nflScheduleData from '../python/nfl_2024/nflModel2024.json';
+import nflScheduleData from '../python/nfl_2025/nflModel2025.json';
 
 // Moved outside to avoid useEffect dependency warning
 const calculateParlayOdds = (selectedWinners, week, schedule) => {
@@ -33,7 +33,7 @@ const calculateParlayOdds = (selectedWinners, week, schedule) => {
 
 const Parlay = ({ activeTab }) => {
     const [selectedWinners, setSelectedWinners] = useState([]);
-    const [week] = useState(22); // Hardcoded target week
+    const [week] = useState(15); // Hardcoded target week
 
     const handleWinnerSelection = (gameId, team, index) => {
         setSelectedWinners((prevSelectedWinners) => {
