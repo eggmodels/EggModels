@@ -212,19 +212,41 @@ def get_kalshi_matches(api_key, private_key):
     logger.info("Fetching Kalshi tennis markets...")
 
     match_rows = []
-    base_url = "https://api.kalshi.com/trade-api/v2"
+
+    # Try multiple possible base URLs
+    possible_urls = [
+        "https://api.kalshi.com",
+        "https://kalshi.com/api",
+        "https://kalshi.com"
+    ]
+
+    response = None
+    headers = {"KSAPI-Token": api_key.strip()}
 
     try:
-        # Get all active markets
-        headers = {"KSAPI-Token": api_key.strip()}
-        logger.info(f"Querying Kalshi API: {base_url}/markets")
+        # Try each base URL
+        for base_url in possible_urls:
+            try:
+                logger.info(f"Trying Kalshi API: {base_url}/events")
+                response = requests.get(
+                    f"{base_url}/events",
+                    headers=headers,
+                    params={"limit": 1000, "status": "open"},
+                    timeout=5
+                )
+                if response.status_code < 500:
+                    logger.info(f"Got response from {base_url}: {response.status_code}")
+                    break
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Connection failed for {base_url}: {str(e)[:100]}")
+                continue
+            except Exception as e:
+                logger.warning(f"Error with {base_url}: {str(e)[:100]}")
+                continue
 
-        response = requests.get(
-            f"{base_url}/markets",
-            headers=headers,
-            params={"limit": 1000, "status": "open"},
-            timeout=10
-        )
+        if response is None:
+            logger.error("Kalshi API: No successful response from any endpoint")
+            return pd.DataFrame()
 
         logger.info(f"Kalshi API response status: {response.status_code}")
 
@@ -233,19 +255,19 @@ def get_kalshi_matches(api_key, private_key):
             logger.error(f"Response: {response.text[:200]}")
             return pd.DataFrame()
 
-        markets_data = response.json()
-        markets = markets_data.get('markets', [])
+        events_data = response.json()
+        events = events_data.get('events', [])
 
-        logger.info(f"Total markets from Kalshi: {len(markets)}")
+        logger.info(f"Total events from Kalshi: {len(events)}")
 
-        # Filter for tennis markets
-        tennis_markets = [m for m in markets if 'tennis' in m.get('title', '').lower()]
+        # Filter for tennis events
+        tennis_events = [e for e in events if 'tennis' in e.get('title', '').lower()]
 
-        logger.info(f"Found {len(tennis_markets)} tennis markets")
+        logger.info(f"Found {len(tennis_events)} tennis events")
 
-        for market in tennis_markets:
-            title = market.get('title', '')
-            event_expires_at = market.get('event_expires_at')
+        for event in tennis_events:
+            title = event.get('title', '')
+            event_expires_at = event.get('expiration_time') or event.get('event_expires_at')
 
             # Parse match date from market expiration time
             match_date = None
@@ -261,12 +283,12 @@ def get_kalshi_matches(api_key, private_key):
             if players and len(players) == 2:
                 match_rows.append({
                     'event_name': extract_tournament_from_title(title),
-                    'event_id': market.get('id'),
+                    'event_id': event.get('id') or event.get('event_id'),
                     'match_name': title,
                     'Player': players[0],
                     'Opponent': players[1],
                     'match_date': match_date,
-                    'status': market.get('status', 'open')
+                    'status': event.get('status', 'open')
                 })
 
         if not match_rows:
