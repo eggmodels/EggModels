@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import countries from 'i18n-iso-countries';
 import enLocale from 'i18n-iso-countries/langs/en.json';
@@ -7,36 +7,25 @@ import enLocale from 'i18n-iso-countries/langs/en.json';
 countries.registerLocale(enLocale);
 
 const Tennis = ({ activeTab }) => {
-  const [eventMatchMap, setEventMatchMap] = useState({});
+  const [matches, setMatches] = useState([]);
   const [latestDateStr, setLatestDateStr] = useState(null);
 
   useEffect(() => {
     const fetchLatestMatches = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "model_outputs"));
-        const allMatches = querySnapshot.docs.map(doc => doc.data());
+        const docRef = doc(db, "tennis_odds", "current");
+        const docSnap = await getDoc(docRef);
 
-        const dateMatchMap = {};
-        allMatches.forEach(match => {
-          const dateObj = match.uploaded_at.toDate();
-          const dayStr = dateObj.toLocaleDateString("en-CA");
-          if (!dateMatchMap[dayStr]) dateMatchMap[dayStr] = [];
-          dateMatchMap[dayStr].push(match);
-        });
-
-        const allDates = Object.keys(dateMatchMap);
-        const latestStr = allDates.sort((a, b) => new Date(b) - new Date(a))[0];
-        const latestMatches = dateMatchMap[latestStr] || [];
-        setLatestDateStr(latestStr);
-
-        const map = {};
-        latestMatches.forEach(match => {
-          const eventId = match.event_id;
-          if (!map[eventId]) map[eventId] = [];
-          if (map[eventId].length < 2) map[eventId].push(match);
-        });
-
-        setEventMatchMap(map);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+          const dayStr = timestamp.toLocaleDateString("en-CA");
+          setLatestDateStr(dayStr);
+          setMatches(data.matches || []);
+        } else {
+          console.warn("No tennis odds data found in Firestore");
+          setMatches([]);
+        }
       } catch (err) {
         console.error("❌ Error fetching tennis data:", err);
       }
@@ -65,50 +54,45 @@ const Tennis = ({ activeTab }) => {
       </div>
       <div className="markdown-container">
         <h4>
-          Disclaimer: The sum of breakeven probabilities may not always sum to 100% (or breakeven odds sum to 0). 
-          This is by design and baked into the parameters of the model as a built-in margin of safety.
+          Disclaimer: Win probabilities are based on Elo ratings and may not reflect actual market odds.
         </h4>
       </div>
 
       <div className="games-container">
-        {Object.entries(eventMatchMap).map(([eventId, players], index) => {
-          if (players.length < 2) return null;
-          const [p1, p2] = players;
-          return (
-            <div key={eventId} className="game-box">
+        {matches.length === 0 ? (
+          <p>No tennis matches available</p>
+        ) : (
+          matches.map((match, index) => (
+            <div key={index} className="game-box">
               <table className="game-table">
                 <thead>
                   <tr>
                     <th>Player</th>
-                    <th>Break Even Odds</th>
+                    <th>Win Probability</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td className="team-name">
-                      {countryToEmoji(p1.player_country)} {capitalizeFullName(p1.Player)}
+                      {capitalizeFullName(match["Player 1"])}
                     </td>
                     <td className="probability">
-                      {Number(p1["Breakeven Odds"]) > 0
-                        ? `+${Number(p1["Breakeven Odds"])}`
-                        : Number(p1["Breakeven Odds"])}
+                      {(Number(match["Player 1 Win Probability"]) * 100).toFixed(1)}%
                     </td>
                   </tr>
                   <tr>
                     <td className="team-name">
-                      {countryToEmoji(p2.player_country)} {capitalizeFullName(p2.Player)}
+                      {capitalizeFullName(match["Player 2"])}
                     </td>
                     <td className="probability">
-                      {Number(p2["Breakeven Odds"]) > 0
-                        ? `+${Number(p2["Breakeven Odds"])}`
-                        : Number(p2["Breakeven Odds"])}
+                      {(Number(match["Player 2 Win Probability"]) * 100).toFixed(1)}%
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );
