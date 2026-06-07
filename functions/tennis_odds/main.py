@@ -16,9 +16,7 @@ import unicodedata
 from google.cloud import firestore
 from google.cloud import secretmanager
 import os
-import base64
-import hashlib
-import hmac
+from kalshi_python import Configuration, KalshiClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +30,7 @@ def get_secret(secret_id, version_id="latest"):
     name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
     response = client.access_secret_version(request={"name": name})
     return response.payload.data.decode("UTF-8").strip()
+
 
 # ============= UTILITY FUNCTIONS =============
 
@@ -207,46 +206,49 @@ def scrape_elo_ratings():
     logger.info(f"Scraped {len(combined_elos)} players")
     return combined_elos
 
-def get_kalshi_matches(api_key, private_key):
-    """Fetch upcoming tennis matches from Kalshi REST API."""
+def get_kalshi_matches(api_key, private_key_pem):
+    """Fetch upcoming tennis matches from Kalshi API using official SDK."""
     logger.info("Fetching Kalshi tennis markets...")
 
     match_rows = []
 
-    # Kalshi API base URL (hosted on Vercel)
-    base_url = "https://kalshi.com"
-
-    headers = {"KSAPI-Token": api_key.strip()}
-
     try:
-        logger.info(f"Querying Kalshi API: {base_url}/events")
-        response = requests.get(
-            f"{base_url}/events",
-            headers=headers,
-            params={"limit": 1000, "status": "open"},
-            timeout=10
+        # Configure Kalshi client
+        config = Configuration(
+            host="https://api.elections.kalshi.com/trade-api/v2"
         )
+        config.api_key_id = api_key
+        config.private_key_pem = private_key_pem
 
-        logger.info(f"Kalshi API response status: {response.status_code}")
+        # Initialize client
+        client = KalshiClient(config)
+        logger.info("Kalshi client initialized")
 
-        if response.status_code != 200:
-            logger.error(f"Kalshi API error: {response.status_code}")
-            logger.error(f"Response: {response.text[:200]}")
-            return pd.DataFrame()
-
-        events_data = response.json()
-        events = events_data.get('events', [])
+        # Get events
+        logger.info("Fetching events from Kalshi API")
+        try:
+            # Try fetching events with open status
+            events_response = client.get_events()
+            events = events_response.events if hasattr(events_response, 'events') else events_response
+            if not events:
+                events = []
+            logger.info(f"Got response type: {type(events_response)}")
+        except Exception as e:
+            logger.error(f"Error fetching events: {str(e)}")
+            raise
 
         logger.info(f"Total events from Kalshi: {len(events)}")
 
         # Filter for tennis events
-        tennis_events = [e for e in events if 'tennis' in e.get('title', '').lower()]
+        tennis_events = [e for e in events if 'tennis' in (e.title if hasattr(e, 'title') else e.get('title', '')).lower()]
 
         logger.info(f"Found {len(tennis_events)} tennis events")
 
         for event in tennis_events:
-            title = event.get('title', '')
-            event_expires_at = event.get('expiration_time') or event.get('event_expires_at')
+            title = event.title if hasattr(event, 'title') else event.get('title', '')
+            event_expires_at = (event.expiration_time if hasattr(event, 'expiration_time') else None) or \
+                             (event.expires_at if hasattr(event, 'expires_at') else None) or \
+                             event.get('expiration_time') or event.get('expires_at')
 
             # Parse match date from market expiration time
             match_date = None
