@@ -170,7 +170,7 @@ def scrape_elo_ratings():
 
     try:
         url = "https://tennisabstract.com/reports/atp_elo_ratings.html"
-        response = requests.get(url, verify=False, timeout=10)
+        response = requests.get(url, timeout=10)
         tables = BeautifulSoup(response.text, "html.parser").find_all("table")
         atp_elos = pd.read_html(StringIO(str(tables[2])))[0]
     except Exception as e:
@@ -178,7 +178,7 @@ def scrape_elo_ratings():
 
     try:
         url = "https://tennisabstract.com/reports/wta_elo_ratings.html"
-        response = requests.get(url, verify=False, timeout=10)
+        response = requests.get(url, timeout=10)
         tables = BeautifulSoup(response.text, "html.parser").find_all("table")
         wta_elos = pd.read_html(StringIO(str(tables[2])))[0]
     except Exception as e:
@@ -212,7 +212,7 @@ def get_prophetx_matches(access_token, base_url):
 
     # Get tournaments
     params = {'limit': 150, 'expand': 'events', 'type': 'highlight', 'has_active_events': True}
-    response = requests.get(base_url + "/mm/get_tournaments", headers=auth_header, params=params, verify=False).json()
+    response = requests.get(base_url + "/mm/get_tournaments", headers=auth_header, params=params).json()
     tennis_events = [event for event in response['data']['tournaments'] if 'ATP' in event['name'] or 'WTA' in event['name']]
     tournament_codes = [item['id'] for item in tennis_events]
 
