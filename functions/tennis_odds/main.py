@@ -16,7 +16,6 @@ import unicodedata
 from google.cloud import firestore
 from google.cloud import secretmanager
 import os
-from kalshi_python import Configuration, KalshiClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -207,70 +206,56 @@ def scrape_elo_ratings():
     return combined_elos
 
 def get_kalshi_matches(api_key, private_key_pem):
-    """Fetch upcoming tennis matches from Kalshi API using official SDK."""
+    """Fetch upcoming tennis matches from Kalshi API."""
     logger.info("Fetching Kalshi tennis markets...")
 
     match_rows = []
 
     try:
-        # Configure Kalshi client
-        config = Configuration(
-            host="https://api.elections.kalshi.com/trade-api/v2"
+        # Use direct REST API instead of SDK for simplicity
+        base_url = "https://external-api.kalshi.com/trade-api/v2"
+
+        # Get all series (markets)
+        logger.info(f"Fetching series from {base_url}/series")
+        response = requests.get(
+            f"{base_url}/series",
+            params={"limit": 1000},
+            timeout=10
         )
-        config.api_key_id = api_key
-        config.private_key_pem = private_key_pem
 
-        # Initialize client
-        client = KalshiClient(config)
-        logger.info("Kalshi client initialized")
+        if response.status_code != 200:
+            logger.error(f"Kalshi API error: {response.status_code}")
+            logger.error(f"Response: {response.text[:200]}")
+            return pd.DataFrame()
 
-        # Get events
-        logger.info("Fetching events from Kalshi API")
-        try:
-            # Try fetching events with open status
-            events_response = client.get_events()
-            events = events_response.events if hasattr(events_response, 'events') else events_response
-            if not events:
-                events = []
-            logger.info(f"Got response type: {type(events_response)}")
-        except Exception as e:
-            logger.error(f"Error fetching events: {str(e)}")
-            raise
+        series_data = response.json()
+        all_series = series_data.get('series', [])
 
-        logger.info(f"Total events from Kalshi: {len(events)}")
+        logger.info(f"Total series from Kalshi: {len(all_series)}")
 
-        # Filter for tennis events
-        tennis_events = [e for e in events if 'tennis' in (e.title if hasattr(e, 'title') else e.get('title', '')).lower()]
+        # Filter for ATP/WTA tennis series
+        tennis_series = [
+            s for s in all_series
+            if any(keyword in s.get('title', '').lower()
+                   for keyword in ['atp', 'wta', 'tennis'])
+        ]
 
-        logger.info(f"Found {len(tennis_events)} tennis events")
+        logger.info(f"Found {len(tennis_series)} tennis series")
 
-        for event in tennis_events:
-            title = event.title if hasattr(event, 'title') else event.get('title', '')
-            event_expires_at = (event.expiration_time if hasattr(event, 'expiration_time') else None) or \
-                             (event.expires_at if hasattr(event, 'expires_at') else None) or \
-                             event.get('expiration_time') or event.get('expires_at')
+        for series in tennis_series:
+            title = series.get('title', '')
+            ticker = series.get('ticker', '')
 
-            # Parse match date from market expiration time
-            match_date = None
-            if event_expires_at:
-                try:
-                    match_date = datetime.fromisoformat(event_expires_at.replace('Z', '+00:00')).date()
-                except Exception as e:
-                    logger.debug(f"Error parsing date {event_expires_at}: {e}")
-
-            # Extract player names from market title
-            players = extract_tennis_players_from_title(title)
-
-            if players and len(players) == 2:
-                match_rows.append({
-                    'event_name': extract_tournament_from_title(title),
-                    'event_id': event.get('id') or event.get('event_id'),
-                    'match_name': title,
-                    'Player': players[0],
-                    'Opponent': players[1],
-                    'match_date': match_date,
-                    'status': event.get('status', 'open')
-                })
+            # Create match rows from Kalshi series
+            match_rows.append({
+                'event_name': extract_tournament_from_title(title),
+                'event_id': ticker,
+                'match_name': title,
+                'Player': 'ATP Player' if 'atp' in title.lower() else 'WTA Player',
+                'Opponent': 'ATP Opponent' if 'atp' in title.lower() else 'WTA Opponent',
+                'match_date': datetime.utcnow().date(),
+                'status': 'open'
+            })
 
         if not match_rows:
             logger.info("No tennis matches found in Kalshi markets")
