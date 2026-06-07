@@ -88,6 +88,13 @@ const Tennis = ({ activeTab }) => {
                       {(Number(match["Player 2 Win Probability"]) * 100).toFixed(1)}%
                     </td>
                   </tr>
+                  {match["match_date"] && (
+                    <tr>
+                      <td colSpan="2" style={{ textAlign: "center", fontSize: "0.9em", color: "#666" }}>
+                        {new Date(match["match_date"]).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

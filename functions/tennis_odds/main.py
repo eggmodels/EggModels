@@ -238,6 +238,7 @@ def get_kalshi_matches(api_key, private_key_pem):
             for market in markets:
                 title = market.get('title', '')
                 ticker = market.get('ticker', '')
+                expiration_time = market.get('expiration_time')
 
                 # Extract player name and match info from title
                 # Format: "Will [Player Name] win the [Match Info]?"
@@ -258,6 +259,15 @@ def get_kalshi_matches(api_key, private_key_pem):
                         logger.debug(f"Failed to extract opponent from: {title}")
                         continue
 
+                    # Parse match date from expiration_time
+                    match_date = datetime.utcnow().date()
+                    if expiration_time:
+                        try:
+                            exp_dt = datetime.fromisoformat(expiration_time.replace('Z', '+00:00'))
+                            match_date = exp_dt.date()
+                        except Exception as e:
+                            logger.debug(f"Could not parse expiration_time {expiration_time}: {e}")
+
                     # Use match_info as unique key to avoid duplicates
                     if match_part not in seen_matches:
                         seen_matches.add(match_part)
@@ -267,7 +277,7 @@ def get_kalshi_matches(api_key, private_key_pem):
                             'match_name': match_part,
                             'Player': player_name,
                             'Opponent': opponent_name,
-                            'match_date': datetime.utcnow().date(),
+                            'match_date': match_date,
                             'status': 'open'
                         })
                 else:
