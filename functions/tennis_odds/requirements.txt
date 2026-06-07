@@ -8,3 +8,5 @@ scipy>=1.12.0
 google-cloud-firestore>=2.14.0
 google-cloud-secret-manager>=2.16.5
 lxml>=4.9.3
+kalshi-python>=0.2.0
+cryptography>=41.0.0
