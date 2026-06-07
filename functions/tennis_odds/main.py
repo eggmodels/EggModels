@@ -239,33 +239,39 @@ def get_kalshi_matches(api_key, private_key_pem):
                 title = market.get('title', '')
                 ticker = market.get('ticker', '')
 
-                # Extract match name (before the colon)
-                if ':' in title:
-                    match_info = title.split(':')[0].replace('Will ', '').replace(' win the ', '').strip()
+                # Extract player name and match info from title
+                # Format: "Will [Player Name] win the [Match Info]?"
+                if 'Will ' in title and ' win the ' in title:
+                    parts = title.split(' win the ')
+                    player_name = parts[0].replace('Will ', '').strip()
+                    match_info = parts[1].replace('?', '').strip()
+
+                    # Extract opponent from match info (format: "Player vs Opponent: Round info")
+                    if ' vs ' in match_info:
+                        match_part = match_info.split(':')[0].strip()  # "Player vs Opponent"
+                        opponent_name = match_part.replace(player_name, '').replace(' vs ', '').replace('vs ', '').strip()
+                    else:
+                        opponent_name = None
+
+                    # Skip if we couldn't extract both players
+                    if not opponent_name:
+                        logger.debug(f"Failed to extract opponent from: {title}")
+                        continue
+
+                    # Use match_info as unique key to avoid duplicates
+                    if match_part not in seen_matches:
+                        seen_matches.add(match_part)
+                        match_rows.append({
+                            'event_name': f"{tour} Match",
+                            'event_id': ticker,
+                            'match_name': match_part,
+                            'Player': player_name,
+                            'Opponent': opponent_name,
+                            'match_date': datetime.utcnow().date(),
+                            'status': 'open'
+                        })
                 else:
-                    match_info = title
-
-                # Skip if we've already seen this match
-                if match_info in seen_matches:
-                    continue
-                seen_matches.add(match_info)
-
-                # Extract players from match info (format: "Player A vs Player B")
-                players = extract_tennis_players_from_title(match_info)
-
-                if not players:
-                    logger.debug(f"Failed to extract players from: {match_info}")
-
-                if players and len(players) == 2:
-                    match_rows.append({
-                        'event_name': f"{tour} Match",
-                        'event_id': ticker,
-                        'match_name': match_info,
-                        'Player': players[0],
-                        'Opponent': players[1],
-                        'match_date': datetime.utcnow().date(),
-                        'status': 'open'
-                    })
+                    logger.debug(f"Unexpected title format: {title}")
 
         if not match_rows:
             logger.info("No tennis matches found in Kalshi markets")
