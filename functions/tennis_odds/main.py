@@ -16,6 +16,7 @@ import unicodedata
 from google.cloud import firestore
 from google.cloud import secretmanager
 import os
+from kalshi_python.client import Client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -204,61 +205,117 @@ def scrape_elo_ratings():
     logger.info(f"Scraped {len(combined_elos)} players")
     return combined_elos
 
-def get_prophetx_matches(access_token, base_url):
-    """Fetch upcoming tennis matches from ProphetX API."""
-    logger.info("Fetching ProphetX matches...")
+def get_kalshi_matches(kalshi_client):
+    """Fetch upcoming tennis matches from Kalshi API."""
+    logger.info("Fetching Kalshi tennis markets...")
 
-    auth_header = {"Authorization": f"Bearer {access_token}"}
-
-    # Get tournaments
-    params = {'limit': 150, 'expand': 'events', 'type': 'highlight', 'has_active_events': True}
-    response = requests.get(base_url + "/mm/get_tournaments", headers=auth_header, params=params).json()
-    tennis_events = [event for event in response['data']['tournaments'] if 'ATP' in event['name'] or 'WTA' in event['name']]
-    tournament_codes = [item['id'] for item in tennis_events]
-
-    # Get matches
     match_rows = []
-    for tournament_id in tournament_codes:
-        params = {"tournament_id": tournament_id}
-        response = requests.get(base_url + "/mm/get_sport_events", headers=auth_header, params=params).json()
-        for event in response['data'].get('sport_events', []):
-            competitors = event.get('competitors', [])
-            if len(competitors) == 2:
-                scheduled_utc = event.get('scheduled')
-                match_date = None
-                if scheduled_utc:
-                    try:
-                        match_date = datetime.strptime(scheduled_utc, "%Y-%m-%dT%H:%M:%SZ").date()
-                    except:
-                        pass
 
-                for i, competitor in enumerate(competitors):
-                    match_rows.append({
-                        'event_name': event.get('tournament_name', 'Unknown'),
-                        'event_id': event.get('event_id'),
-                        'match_name': event.get('name'),
-                        'Player': competitor.get('name'),
-                        'Opponent': competitors[1-i].get('name'),
-                        'match_date': match_date,
-                        'status': event.get('status')
-                    })
+    try:
+        # Get all active markets
+        markets = kalshi_client.get_markets(limit=1000)
 
-    if not match_rows:
-        logger.info("No matches found")
-        return pd.DataFrame(), auth_header, base_url
+        # Filter for tennis markets
+        tennis_markets = [m for m in markets if 'tennis' in m.get('title', '').lower()]
 
-    matches = pd.DataFrame(match_rows)
-    matches['Player'] = matches['Player'].apply(normalize_name)
-    matches['Opponent'] = matches['Opponent'].apply(normalize_name)
-    matches['match_date'] = pd.to_datetime(matches['match_date'])
+        logger.info(f"Found {len(tennis_markets)} tennis markets")
 
-    today = pd.Timestamp(datetime.today().date())
-    tomorrow = today + pd.Timedelta(days=1)
-    matches = matches[matches['match_date'].dt.normalize().isin([today, tomorrow])]
-    matches = matches[matches['status'] != 'live']
+        for market in tennis_markets:
+            title = market.get('title', '')
+            event_expires_at = market.get('event_expires_at')
 
-    logger.info(f"Found {len(matches)} upcoming matches")
-    return matches, auth_header, base_url
+            # Parse match date from market expiration time
+            match_date = None
+            if event_expires_at:
+                try:
+                    match_date = datetime.fromisoformat(event_expires_at.replace('Z', '+00:00')).date()
+                except:
+                    pass
+
+            # Extract player names from market title
+            # Typical format: "Player A beats Player B in [Tournament] [Date]"
+            players = extract_tennis_players_from_title(title)
+
+            if players and len(players) == 2:
+                match_rows.append({
+                    'event_name': extract_tournament_from_title(title),
+                    'event_id': market.get('id'),
+                    'match_name': title,
+                    'Player': players[0],
+                    'Opponent': players[1],
+                    'match_date': match_date,
+                    'status': market.get('status', 'open')
+                })
+
+        if not match_rows:
+            logger.info("No tennis matches found in Kalshi markets")
+            return pd.DataFrame()
+
+        matches = pd.DataFrame(match_rows)
+        matches['Player'] = matches['Player'].apply(normalize_name)
+        matches['Opponent'] = matches['Opponent'].apply(normalize_name)
+        matches['match_date'] = pd.to_datetime(matches['match_date'])
+
+        today = pd.Timestamp(datetime.today().date())
+        tomorrow = today + pd.Timedelta(days=1)
+        matches = matches[matches['match_date'].dt.normalize().isin([today, tomorrow])]
+        matches = matches[matches['status'].isin(['open', 'active'])]
+
+        logger.info(f"Found {len(matches)} upcoming tennis matches")
+        return matches
+
+    except Exception as e:
+        logger.error(f"Error fetching Kalshi matches: {e}")
+        return pd.DataFrame()
+
+def extract_tennis_players_from_title(title):
+    """Extract player names from Kalshi market title."""
+    # Common patterns: "Player A beats Player B" or "Will Player A beat Player B"
+    title_lower = title.lower()
+
+    # Try "beats" pattern
+    if ' beats ' in title_lower:
+        parts = title.split(' beats ')
+        if len(parts) == 2:
+            player_a = parts[0].strip()
+            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
+            return [player_a, player_b]
+
+    # Try "beat" pattern
+    if ' beat ' in title_lower:
+        parts = title.split(' beat ')
+        if len(parts) == 2:
+            player_a = parts[0].strip()
+            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
+            return [player_a, player_b]
+
+    # Try "vs" pattern
+    if ' vs ' in title_lower or ' v ' in title_lower:
+        separator = ' vs ' if ' vs ' in title_lower else ' v '
+        parts = title.split(separator)
+        if len(parts) >= 2:
+            player_a = parts[0].strip()
+            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
+            return [player_a, player_b]
+
+    return None
+
+def extract_tournament_from_title(title):
+    """Extract tournament name from market title."""
+    # Look for tournament names in the title
+    tournaments = ['wimbledon', 'us open', 'french open', 'australian open', 'atp', 'wta', 'masters', 'slam']
+
+    for tournament in tournaments:
+        if tournament.lower() in title.lower():
+            return tournament.title()
+
+    # Extract what's after "in" or "on"
+    if ' in ' in title:
+        return title.split(' in ')[-1].split(' on ')[0].strip()
+    if ' on ' in title:
+        return title.split(' on ')[-1].strip()
+
+    return 'Unknown Tournament'
 
 def get_prophetx_odds(matches, auth_header, base_url):
     """Fetch moneyline odds from ProphetX."""
@@ -388,27 +445,24 @@ def run_tennis_odds(request):
     try:
         logger.info("Starting tennis odds pipeline...")
 
-        # Get API credentials from Secret Manager
-        prophetx_access_key = get_secret("prophetx_access_key")
-        prophetx_secret_key = get_secret("prophetx_secret_key")
+        # Get Kalshi credentials from Secret Manager
+        kalshi_api_key = get_secret("kalshi-api-key")
+        kalshi_private_key = get_secret("kalshi-private-key")
 
-        # ProphetX authentication
-        prophetx_base_url = "https://cash.api.prophetx.co/partner"
-        auth_response = requests.post(
-            prophetx_base_url + '/auth/login',
-            headers={"Content-Type": "application/json"},
-            json={"access_key": prophetx_access_key, "secret_key": prophetx_secret_key}
-        )
-
-        if auth_response.status_code != 200:
-            logger.error(f"ProphetX auth failed: {auth_response.status_code} - {auth_response.text}")
-            raise Exception("ProphetX authentication failed")
-
-        access_token = auth_response.json()['data']['access_token']
+        # Initialize Kalshi client
+        try:
+            kalshi_client = Client(
+                api_key=kalshi_api_key,
+                key=kalshi_private_key
+            )
+            logger.info("Kalshi client authenticated")
+        except Exception as e:
+            logger.error(f"Kalshi authentication failed: {str(e)}")
+            raise Exception("Kalshi authentication failed")
 
         # Fetch data
         combined_elos = scrape_elo_ratings()
-        matches, auth_header, base_url = get_prophetx_matches(access_token, prophetx_base_url)
+        matches = get_kalshi_matches(kalshi_client)
 
         if len(matches) == 0:
             logger.info("No upcoming matches found")
