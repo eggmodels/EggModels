@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "egg-models",
     "public": "build",
     "ignore": [
       "firebase.json",
