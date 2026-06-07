@@ -16,7 +16,9 @@ import unicodedata
 from google.cloud import firestore
 from google.cloud import secretmanager
 import os
-from kalshi_python.client import Client
+import base64
+import hashlib
+import hmac
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +31,7 @@ def get_secret(secret_id, version_id="latest"):
     client = secretmanager.SecretManagerServiceClient()
     name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
     response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode("UTF-8")
+    return response.payload.data.decode("UTF-8").strip()
 
 # ============= UTILITY FUNCTIONS =============
 
@@ -205,15 +207,36 @@ def scrape_elo_ratings():
     logger.info(f"Scraped {len(combined_elos)} players")
     return combined_elos
 
-def get_kalshi_matches(kalshi_client):
-    """Fetch upcoming tennis matches from Kalshi API."""
+def get_kalshi_matches(api_key, private_key):
+    """Fetch upcoming tennis matches from Kalshi REST API."""
     logger.info("Fetching Kalshi tennis markets...")
 
     match_rows = []
+    base_url = "https://api.kalshi.com/trade-api/v2"
 
     try:
         # Get all active markets
-        markets = kalshi_client.get_markets(limit=1000)
+        headers = {"KSAPI-Token": api_key.strip()}
+        logger.info(f"Querying Kalshi API: {base_url}/markets")
+
+        response = requests.get(
+            f"{base_url}/markets",
+            headers=headers,
+            params={"limit": 1000, "status": "open"},
+            timeout=10
+        )
+
+        logger.info(f"Kalshi API response status: {response.status_code}")
+
+        if response.status_code != 200:
+            logger.error(f"Kalshi API error: {response.status_code}")
+            logger.error(f"Response: {response.text[:200]}")
+            return pd.DataFrame()
+
+        markets_data = response.json()
+        markets = markets_data.get('markets', [])
+
+        logger.info(f"Total markets from Kalshi: {len(markets)}")
 
         # Filter for tennis markets
         tennis_markets = [m for m in markets if 'tennis' in m.get('title', '').lower()]
@@ -229,11 +252,10 @@ def get_kalshi_matches(kalshi_client):
             if event_expires_at:
                 try:
                     match_date = datetime.fromisoformat(event_expires_at.replace('Z', '+00:00')).date()
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Error parsing date {event_expires_at}: {e}")
 
             # Extract player names from market title
-            # Typical format: "Player A beats Player B in [Tournament] [Date]"
             players = extract_tennis_players_from_title(title)
 
             if players and len(players) == 2:
@@ -261,11 +283,11 @@ def get_kalshi_matches(kalshi_client):
         matches = matches[matches['match_date'].dt.normalize().isin([today, tomorrow])]
         matches = matches[matches['status'].isin(['open', 'active'])]
 
-        logger.info(f"Found {len(matches)} upcoming tennis matches")
+        logger.info(f"Found {len(matches)} upcoming tennis matches in Kalshi")
         return matches
 
     except Exception as e:
-        logger.error(f"Error fetching Kalshi matches: {e}")
+        logger.error(f"Error fetching Kalshi matches: {type(e).__name__}: {str(e)[:200]}")
         return pd.DataFrame()
 
 def extract_tennis_players_from_title(title):
@@ -449,20 +471,11 @@ def run_tennis_odds(request):
         kalshi_api_key = get_secret("kalshi-api-key")
         kalshi_private_key = get_secret("kalshi-private-key")
 
-        # Initialize Kalshi client
-        try:
-            kalshi_client = Client(
-                api_key=kalshi_api_key,
-                key=kalshi_private_key
-            )
-            logger.info("Kalshi client authenticated")
-        except Exception as e:
-            logger.error(f"Kalshi authentication failed: {str(e)}")
-            raise Exception("Kalshi authentication failed")
+        logger.info("Kalshi credentials retrieved from Secret Manager")
 
         # Fetch data
         combined_elos = scrape_elo_ratings()
-        matches = get_kalshi_matches(kalshi_client)
+        matches = get_kalshi_matches(kalshi_api_key, kalshi_private_key)
 
         if len(matches) == 0:
             logger.info("No upcoming matches found")
