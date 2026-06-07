@@ -212,50 +212,60 @@ def get_kalshi_matches(api_key, private_key_pem):
     match_rows = []
 
     try:
-        # Use direct REST API instead of SDK for simplicity
         base_url = "https://external-api.kalshi.com/trade-api/v2"
 
-        # Get all series (markets)
-        logger.info(f"Fetching series from {base_url}/series")
-        response = requests.get(
-            f"{base_url}/series",
-            params={"limit": 1000},
-            timeout=10
-        )
+        # Fetch ATP and WTA match markets
+        for series_ticker, tour in [('KXATPMATCH', 'ATP'), ('KXTAMATCH', 'WTA')]:
+            logger.info(f"Starting fetch for {tour} with series_ticker={series_ticker}")
+            response = requests.get(
+                f"{base_url}/markets",
+                params={"series_ticker": series_ticker, "limit": 500},
+                timeout=10
+            )
 
-        if response.status_code != 200:
-            logger.error(f"Kalshi API error: {response.status_code}")
-            logger.error(f"Response: {response.text[:200]}")
-            return pd.DataFrame()
+            if response.status_code != 200:
+                logger.warning(f"Kalshi API error for {tour}: {response.status_code}")
+                logger.warning(f"Response: {response.text[:500]}")
+                continue
 
-        series_data = response.json()
-        all_series = series_data.get('series', [])
+            markets_data = response.json()
+            markets = markets_data.get('markets', [])
+            logger.info(f"Found {len(markets)} {tour} markets")
+            logger.info(f"Sample market titles: {[m.get('title', '')[:80] for m in markets[:2]]}")
 
-        logger.info(f"Total series from Kalshi: {len(all_series)}")
+            # Parse markets to get match info
+            seen_matches = set()
+            for market in markets:
+                title = market.get('title', '')
+                ticker = market.get('ticker', '')
 
-        # Filter for ATP/WTA tennis series
-        tennis_series = [
-            s for s in all_series
-            if any(keyword in s.get('title', '').lower()
-                   for keyword in ['atp', 'wta', 'tennis'])
-        ]
+                # Extract match name (before the colon)
+                if ':' in title:
+                    match_info = title.split(':')[0].replace('Will ', '').replace(' win the ', '').strip()
+                else:
+                    match_info = title
 
-        logger.info(f"Found {len(tennis_series)} tennis series")
+                # Skip if we've already seen this match
+                if match_info in seen_matches:
+                    continue
+                seen_matches.add(match_info)
 
-        for series in tennis_series:
-            title = series.get('title', '')
-            ticker = series.get('ticker', '')
+                # Extract players from match info (format: "Player A vs Player B")
+                players = extract_tennis_players_from_title(match_info)
 
-            # Create match rows from Kalshi series
-            match_rows.append({
-                'event_name': extract_tournament_from_title(title),
-                'event_id': ticker,
-                'match_name': title,
-                'Player': 'ATP Player' if 'atp' in title.lower() else 'WTA Player',
-                'Opponent': 'ATP Opponent' if 'atp' in title.lower() else 'WTA Opponent',
-                'match_date': datetime.utcnow().date(),
-                'status': 'open'
-            })
+                if not players:
+                    logger.debug(f"Failed to extract players from: {match_info}")
+
+                if players and len(players) == 2:
+                    match_rows.append({
+                        'event_name': f"{tour} Match",
+                        'event_id': ticker,
+                        'match_name': match_info,
+                        'Player': players[0],
+                        'Opponent': players[1],
+                        'match_date': datetime.utcnow().date(),
+                        'status': 'open'
+                    })
 
         if not match_rows:
             logger.info("No tennis matches found in Kalshi markets")
@@ -265,10 +275,6 @@ def get_kalshi_matches(api_key, private_key_pem):
         matches['Player'] = matches['Player'].apply(normalize_name)
         matches['Opponent'] = matches['Opponent'].apply(normalize_name)
         matches['match_date'] = pd.to_datetime(matches['match_date'])
-
-        today = pd.Timestamp(datetime.today().date())
-        tomorrow = today + pd.Timedelta(days=1)
-        matches = matches[matches['match_date'].dt.normalize().isin([today, tomorrow])]
         matches = matches[matches['status'].isin(['open', 'active'])]
 
         logger.info(f"Found {len(matches)} upcoming tennis matches in Kalshi")
@@ -373,8 +379,8 @@ def process_matches(matches, combined_elos, surface="grass", best_of=3):
     """Process matches with Elo ratings to calculate win probabilities."""
     logger.info("Processing matches with Elo ratings...")
 
-    matches = fuzzy_match_column(matches, combined_elos, "Player", "Player")
-    matches = fuzzy_match_column(matches, combined_elos, "Opponent", "Player")
+    matches = fuzzy_match_column(matches, combined_elos, "Player", "Player", threshold=70)
+    matches = fuzzy_match_column(matches, combined_elos, "Opponent", "Player", threshold=70)
 
     surface_elo = {"clay": "cElo", "grass": "gElo", "hard": "hElo"}.get(surface, "Elo")
 
@@ -419,8 +425,15 @@ def process_matches(matches, combined_elos, surface="grass", best_of=3):
 
 def generate_website_data(matches_with_elos):
     """Generate clean dataset for website."""
-    even_rows = np.arange(0, len(matches_with_elos), 2)
+    matches_with_elos = matches_with_elos.reset_index(drop=True)
+
+    # Only use complete pairs (even rows paired with their next odd row)
+    num_complete_pairs = len(matches_with_elos) // 2
+    even_rows = np.arange(0, num_complete_pairs * 2, 2)
     odd_rows = even_rows + 1
+
+    if len(even_rows) == 0:
+        return pd.DataFrame(columns=["Player 1", "Player 2", "Player 1 Win Probability", "Player 2 Win Probability"])
 
     df_for_website = pd.DataFrame({
         "Player 1": matches_with_elos.loc[even_rows, "Player"].values,
@@ -462,8 +475,13 @@ def run_tennis_odds(request):
         logger.info("Kalshi credentials retrieved from Secret Manager")
 
         # Fetch data
+        print("DEBUG: Scraping Elo ratings...")
         combined_elos = scrape_elo_ratings()
+        print(f"DEBUG: Retrieved Elo data for {len(combined_elos)} players")
+
+        print("DEBUG: Fetching Kalshi matches...")
         matches = get_kalshi_matches(kalshi_api_key, kalshi_private_key)
+        print(f"DEBUG: Retrieved {len(matches)} matches from Kalshi")
 
         if len(matches) == 0:
             logger.info("No upcoming matches found")
@@ -471,10 +489,14 @@ def run_tennis_odds(request):
             return {"status": "success", "message": "No upcoming matches"}
 
         # Process matches with Elo ratings
+        print("DEBUG: Processing matches with Elo ratings...")
         matches_with_elos = process_matches(matches, combined_elos)
+        print(f"DEBUG: After processing: {len(matches_with_elos)} matches")
 
         # Generate website data
+        print("DEBUG: Generating website data...")
         df_for_website = generate_website_data(matches_with_elos)
+        print(f"DEBUG: Website data generated for {len(df_for_website)} matches")
 
         # Write to Firestore
         write_to_firestore(df_for_website)
