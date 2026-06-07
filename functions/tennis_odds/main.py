@@ -213,40 +213,19 @@ def get_kalshi_matches(api_key, private_key):
 
     match_rows = []
 
-    # Try multiple possible base URLs
-    possible_urls = [
-        "https://api.kalshi.com",
-        "https://kalshi.com/api",
-        "https://kalshi.com"
-    ]
+    # Kalshi API base URL (hosted on Vercel)
+    base_url = "https://kalshi.com"
 
-    response = None
     headers = {"KSAPI-Token": api_key.strip()}
 
     try:
-        # Try each base URL
-        for base_url in possible_urls:
-            try:
-                logger.info(f"Trying Kalshi API: {base_url}/events")
-                response = requests.get(
-                    f"{base_url}/events",
-                    headers=headers,
-                    params={"limit": 1000, "status": "open"},
-                    timeout=5
-                )
-                if response.status_code < 500:
-                    logger.info(f"Got response from {base_url}: {response.status_code}")
-                    break
-            except requests.exceptions.ConnectionError as e:
-                logger.warning(f"Connection failed for {base_url}: {str(e)[:100]}")
-                continue
-            except Exception as e:
-                logger.warning(f"Error with {base_url}: {str(e)[:100]}")
-                continue
-
-        if response is None:
-            logger.error("Kalshi API: No successful response from any endpoint")
-            return pd.DataFrame()
+        logger.info(f"Querying Kalshi API: {base_url}/events")
+        response = requests.get(
+            f"{base_url}/events",
+            headers=headers,
+            params={"limit": 1000, "status": "open"},
+            timeout=10
+        )
 
         logger.info(f"Kalshi API response status: {response.status_code}")
 
