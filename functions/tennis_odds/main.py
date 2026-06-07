@@ -401,7 +401,8 @@ def run_tennis_odds(request):
         )
 
         if auth_response.status_code != 200:
-            raise Exception(f"ProphetX auth failed: {auth_response.text}")
+            logger.error(f"ProphetX auth failed: {auth_response.status_code} - {auth_response.text}")
+            raise Exception("ProphetX authentication failed")
 
         access_token = auth_response.json()['data']['access_token']
 
@@ -432,4 +433,4 @@ def run_tennis_odds(request):
 
     except Exception as e:
         logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
-        return {"status": "error", "error": str(e)}, 500
+        return {"status": "error", "error": "Internal server error"}, 500
