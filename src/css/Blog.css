@@ -1,9 +1,4 @@
-/* Blog.css */
-
-/* -------------------------------------- */
-/*              BLOG POSTS               */
-/* -------------------------------------- */
-.posts-container{
+.posts-container {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
@@ -13,14 +8,11 @@
 .post-box {
   width: 80%;
   text-align: left;
-  border-radius: 10px;
-  border: 2px solid grey;
-  font-family: 'Space Mono';
-  padding: 5%;
-  padding-top: 2%;
-  padding-bottom: 2%;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-muted);
+  padding: 5% 5% 2%;
   margin-bottom: 5%;
-  font-size: 1.15rem; 
+  font-size: 1.15rem;
   line-height: 1.75;
 }
 
@@ -30,11 +22,6 @@
   display: block;
 }
 
-
-/* -------------------------------------- */
-/*              CONTENT TEXT             */
-/* -------------------------------------- */
-.intros {
-  font-family: 'Space Mono';
+.blog .intros {
   text-align: center;
 }

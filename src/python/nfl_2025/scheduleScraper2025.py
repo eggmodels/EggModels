@@ -1,49 +1,57 @@
-import requests
 from bs4 import BeautifulSoup
 import json
 import pandas as pd
+import requests
+
 
 def scheduleScraper2025():
     # Define a function to extract the last word from a string
     def lastWord(string):
-        # reversing the string
         reversed_string = string[::-1]
-        # finding the index of first space in reversed string
         index = reversed_string.find(" ")
-        # returning the last word in original string
-        return string[-index:]
+        return string[-index:] if index != -1 else string
 
-    # URL of the NFL 2023 schedule page
-    url = "https://www.pro-football-reference.com/years/2025/games.htm"
+    # ✅ Changed URL to printable version
+    url = "https://www.pro-football-reference.com/years/2025/games.htm?printable=1"
 
-    # Send an HTTP GET request to the URL
-    response = requests.get(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    }
+
+    import time
+    time.sleep(3)
+    response = requests.get(url, headers=headers)
+
+    print(response.status_code)
 
     # Check if the request was successful (status code 200)
     if response.status_code == 200:
-        # Parse the HTML content of the page using BeautifulSoup
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Find all HTML tables on the page
         tables = soup.find_all("table")
 
-        # Loop through the tables and look for one that resembles the schedule table
         schedule_table = None
         for table in tables:
-            # Check if the table contains rows with at least 3 columns (typical for a schedule table)
             rows = table.find_all("tr")
             if any(len(row.find_all(["th", "td"])) >= 3 for row in rows):
                 schedule_table = table
                 break
 
-        # If the schedule table is found, collect specific columns (week, day, date, time, team names)
         if schedule_table is not None:
             schedule_data = []
             rows = schedule_table.find_all("tr")
+
             for row in rows:
                 columns = row.find_all(["th", "td"])
-                if len(columns) >= 7:  # Ensure there are enough columns for the data you need
+                if len(columns) >= 7:
+
                     week = columns[0].text.strip()
+
                     if week.startswith("Pre"):
                         continue
                     if week == 'WildCard':
@@ -55,16 +63,18 @@ def scheduleScraper2025():
                     if week == 'SuperBowl':
                         week = 22
                     if week == "":
-                        continue       
-                    if week != "Week":  # Exclude rows where Week is "Week"
+                        continue
+                    if week != "Week":
+
                         day = columns[1].text.strip()
                         date = columns[2].text.strip()
                         time = columns[3].text.strip()
                         at = columns[5].text.strip()
+
                         if at == "@":
                             team_names1 = lastWord(columns[6].text.strip())
                             team_names2 = lastWord(columns[4].text.strip())
-                            
+
                             try:
                                 scoreA = int(columns[8].text.strip())
                             except:
@@ -74,10 +84,9 @@ def scheduleScraper2025():
                                 scoreH = int(columns[9].text.strip())
                             except:
                                 scoreH = None
-                        else: 
+                        else:
                             team_names1 = lastWord(columns[4].text.strip())
                             team_names2 = lastWord(columns[6].text.strip())
-                            
 
                             try:
                                 scoreA = int(columns[9].text.strip())
@@ -96,7 +105,7 @@ def scheduleScraper2025():
                             "Time": time,
                             "Home": team_names1,
                             "Away": team_names2,
-                            "ScoreH": scoreH,  
+                            "ScoreH": scoreH,
                             "ScoreA": scoreA,
                             "ElopreH": None,
                             "ElopreA": None,
@@ -106,17 +115,17 @@ def scheduleScraper2025():
                             "probA": None,
                             "eloSpread": None
                         }
+
                         schedule_data.append(game_data)
 
-            # Create a Pandas DataFrame from the collected data
             df = pd.DataFrame(schedule_data)
-            # Serialize the collected data as a JSON file
-            # with open("nfl_schedule.json", "w") as json_file:
-            #     json.dump(schedule_data, json_file, indent=2)
 
         else:
             print("Schedule table not found on the page.")
+            return None
+
     else:
         print("Failed to retrieve the webpage.")
+        return None
 
     return df

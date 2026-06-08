@@ -1,7 +1,54 @@
+@import './styles/components.css';
+
 .rankings {
-    font-family: 'Prompt';
-    text-align: center;
-    color: #6B5045;
-    margin: 0;
-    max-height: 1500px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 130px); /* fill viewport below navbar */
+  padding: 0 var(--space-3) var(--space-3);
+  box-sizing: border-box;
+  color: var(--color-text);
+}
+
+.rankings-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  margin-bottom: var(--space-2);
+}
+
+.rankings-header h1 {
+  margin: var(--space-2) 0;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+}
+
+.rankings-season {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  font-size: clamp(14px, 2.5vw, 20px);
+  gap: 4px;
+}
+
+.rankings-season .season-select {
+  font-size: clamp(14px, 2.5vw, 20px);
+}
+
+.rankings-chart-container {
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+}
+
+@media (max-width: 600px) {
+  .rankings {
+    height: calc(100dvh - 110px);
+    padding: 0 var(--space-2) var(--space-2);
+  }
+
+  .rankings-header h1 {
+    font-size: 1.1rem;
+  }
 }

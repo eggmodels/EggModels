@@ -1,0 +1,26 @@
+:root {
+  /* Colors */
+  --color-bg: #F2F1EF;
+  --color-surface: #FFFFFF;
+  --color-accent: #FFAF5D;
+  --color-accent-soft: #FFD3A4;
+  --color-text: #6B5045;
+  --color-muted: #8A7A70;
+
+  /* Typography */
+  --font-serif: "et-book", Palatino, "Palatino Linotype", "Palatino LT STD",
+    "Book Antiqua", Georgia, serif;
+  --font-sans: "Prompt", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Space Mono", Menlo, "Courier New", monospace;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+
+  /* Shape */
+  --radius: 8px;
+  --radius-sm: 5px;
+}

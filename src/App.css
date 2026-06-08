@@ -1,91 +1,140 @@
-/* -------------------------------------- */
-/*             FONT FACES                */
-/* -------------------------------------- */
-/* @font-face {
-  font-family: 'Space Mono';
-  src: url('./fonts/Space_Mono/SpaceMono-Regular.ttf') format('truetype');
-}
+@import './styles/components.css';
 
-@font-face {
-  font-family: 'Prompt';
-  src: url('./fonts/Prompt/Prompt-Black.ttf') format('truetype');
-} */
-
-/* -------------------------------------- */
-/*              GENERAL LAYOUT           */
-/* -------------------------------------- */
+/* ======================================
+   LAYOUT
+   ====================================== */
 .navigation {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #f2f1f0;
   max-width: 100%;
 }
 
-body {
-  font-family: Georgia,serif;
-  background-color: #F2F1EF;
-}
-/* -------------------------------------- */
-/*              SELECTORS                */
-/* -------------------------------------- */
+/* ======================================
+   SELECTORS (week / month)
+   ====================================== */
 .week-selector,
 .month-selector {
   display: flex;
+  flex-wrap: wrap;
   font-weight: bold;
   justify-content: center;
   align-items: center;
-  font-size: 30px;
-  font-family: 'Prompt';
-  color: #6B5045;
-  margin-top: 10px;
+  font-size: clamp(16px, 3.5vw, 26px);
+  color: var(--color-text);
+  margin: var(--space-3) var(--space-3) var(--space-2);
+  gap: var(--space-2);
 }
 
-/* -------------------------------------- */
-/*              GAME BOXES               */
-/* -------------------------------------- */
+.week-selector select,
+.week-selector .season-select,
+.week-select,
+.month-selector select {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-size: clamp(16px, 3.5vw, 26px);
+  font-weight: bold;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3e%3cpath fill='none' stroke='%236B5045' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.2em center;
+  background-size: 0.7em;
+  padding-right: 1.2em;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.week-selector select:focus,
+.week-selector .season-select:focus,
+.week-select:focus,
+.month-selector select:focus {
+  outline: 2px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+.week-select-field {
+  display: inline-grid;
+  position: relative;
+  vertical-align: middle;
+}
+
+.week-select-sizer {
+  grid-area: 1 / 1;
+  font: inherit;
+  visibility: hidden;
+  white-space: pre;
+  padding-right: 1.5em; /* space reserved for the native dropdown arrow */
+  pointer-events: none;
+}
+
+.week-select-field .week-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3e%3cpath fill='none' stroke='%236B5045' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.1em center;
+  background-size: 0.65em;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  font-weight: bold;
+}
+
+/* ======================================
+   GAME BOXES
+   ====================================== */
 .games-container {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
   justify-content: space-evenly;
+  padding: 0 var(--space-2);
 }
 
 .game-box {
   display: flex;
   flex-direction: column;
-  width: 500px;
-  height: 150px;
-  padding: 0;
-  margin: 25px 18px;
-  font-size: .75rem;
-  font-family: 'Space Mono';
-  border-radius: 10px;
-  border: 2px solid grey;
+  width: min(500px, calc(100vw - 36px));
+  height: auto;
+  padding: var(--space-3);
+  margin: var(--space-3) var(--space-2);
+  font-size: 0.75rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-muted);
 }
 
 .game-table {
-  padding: 1rem;
+  padding: 0.75rem;
   text-align: left;
-  font-family: 'Space Mono';
-  font-size: 14.5px;
-  height: 100%;
+  font-size: clamp(11px, 2vw, 14.5px);
   width: 100%;
   table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: var(--space-2) 0;
 }
 
 th {
-  padding: 1%;
-  background-color: #FFAF5D;
-  border-radius: 10px;
+  padding: 4px 2%;
+  background-color: var(--color-accent);
+  border-radius: var(--radius);
   text-align: center;
   font-size: 95%;
+  white-space: nowrap;
 }
 
 td {
   text-align: center;
-  padding: 0;
+  padding: 4px 0;
 }
 
 .team-name {
@@ -93,39 +142,57 @@ td {
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 6px;
 }
 
 .team-logo {
-  padding-right: 10px;
-  width: 35px;
-  height: 35px;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-/* -------------------------------------- */
-/*              CONTENT TEXT             */
-/* -------------------------------------- */
+/* ======================================
+   SCORES & TEXT
+   ====================================== */
+.score {
+  color: var(--color-text);
+}
+
 .intros {
-  font-family: 'Space Mono';
   text-align: center;
 }
 
-.score {
-  font-family: 'Prompt';
-  color: #6B5035;
-}
-
-pre {
-  background: lightgray;
-  border-radius: 10px;
-  padding: 5%;
-  overflow: scroll;
+.section-title {
+  text-align: center;
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .game-date {
-  font-family: 'Space Mono';
   text-align: center;
 }
 
+/* ======================================
+   SECRET TABLE
+   ====================================== */
+.game-table-secret {
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+  font-size: 14.5px;
+  width: 90%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.game-table-secret tbody tr {
+  border-bottom: 1px solid var(--color-muted);
+}
+
+/* ======================================
+   MLB
+   ====================================== */
 .mlb-schedule {
   padding: 10px;
 }
@@ -136,24 +203,22 @@ pre {
   align-items: center;
 }
 
-.section-title {
-  text-align: center;
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
+/* ======================================
+   MOBILE
+   ====================================== */
+@media (max-width: 600px) {
+  .game-box {
+    width: calc(100vw - 32px);
+    margin: var(--space-2) var(--space-2);
+  }
 
-.game-table-secret {
-  margin: 0 auto;
-  padding: 1rem;
-  text-align: left;
-  font-family: 'Space Mono';
-  font-size: 14.5px;
-  height: 100%;
-  width: 90%;
-  table-layout: fixed;
-  border-collapse: collapse; /* 🔑 */
-}
+  .game-table {
+    font-size: 11px;
+    padding: 0.5rem;
+  }
 
-.game-table-secret tbody tr {
-  border-bottom: 1px solid #ccc;
+  .team-logo {
+    width: 24px;
+    height: 24px;
+  }
 }

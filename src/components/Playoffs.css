@@ -1,0 +1,29 @@
+.playoffs-container {
+  display: flex;
+  justify-content: space-around;
+  padding: var(--space-4, 24px);
+}
+
+.playoffs-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 16px);
+}
+
+.matchup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2, 8px);
+  border: 1px solid var(--color-muted, #8A7A70);
+  border-radius: var(--radius, 8px);
+}
+
+.vs {
+  font-weight: bold;
+  margin: var(--space-1, 4px) 0;
+}
+
+.team {
+  font-family: var(--font-sans, 'Prompt', sans-serif);
+}

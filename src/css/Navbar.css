@@ -1,25 +1,16 @@
-
-/* -------------------------------------- */
-/*              NAVBAR                   */
-/* -------------------------------------- */
-body {
-    font-family: "et-book", Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
-
-}
-
 .navbar-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #F2F1EF;
-  padding-top: 20px;
+  background-color: var(--color-bg);
+  padding-top: var(--space-4);
 }
 
 .navbar-logo-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2);
 }
 
 .navbar-logo {
@@ -29,38 +20,36 @@ body {
 
 .navbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 20px;
-  background-color: #F2F1EF;
-  padding: 10px 0;
+  gap: var(--space-2);
+  background-color: var(--color-bg);
+  padding: var(--space-2) var(--space-3);
 }
 
-/* Unifying base nav link styles */
 .navbar a,
 .navbar .dropdown-toggle {
-  font-family: 'Prompt';
-  color: #6B5045;
+
+  color: var(--color-text);
   text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
   cursor: pointer;
   display: inline-block;
 }
 
-/* Ensure layout doesn't shift when link is active */
 .navbar a.active,
 .navbar .dropdown-toggle.active {
-  background-color: #FFAF5D;
+  background-color: var(--color-accent);
 }
 
 .navbar a:hover,
 .navbar .dropdown-toggle:hover {
-  background-color: #ffd3a4;
+  background-color: var(--color-accent-soft);
 }
 
-/* Dropdown */
 .dropdown {
   position: relative;
   display: inline-block;
@@ -73,60 +62,22 @@ body {
   min-width: 160px;
   display: flex;
   flex-direction: column;
-  background-color: #F2F1EF;
-  border-radius: 5px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   z-index: 1000;
 }
 
 .dropdown-menu a {
-  font-family: 'Prompt';
-  color: #6B5045;
-  padding: 10px 16px;
+
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
   text-align: left;
   text-decoration: none;
   white-space: nowrap;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
 }
 
 .dropdown-menu a:hover {
-  background-color: #ffd3a4;
-}
-
-/* -------------------------------------- */
-/*        DROPDOWN VIA <ul> STRUCTURE    */
-/*        (IF USED ELSEWHERE)            */
-/* -------------------------------------- */
-li {
-  position: relative;
-}
-
-li ul.dropdown {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: #f2f1f0;
-  padding: 10px;
-  list-style-type: none;
-  border-radius: 5px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-li:hover ul.dropdown {
-  display: block;
-}
-
-li ul.dropdown li {
-  display: block;
-  padding: 5px 10px;
-}
-
-li ul.dropdown li.active {
-  background-color: #FFAF5D;
-  border-radius: 5px;
-}
-
-li ul.dropdown li.inactive {
-  background-color: transparent;
+  background-color: var(--color-accent-soft);
 }

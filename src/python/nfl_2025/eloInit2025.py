@@ -12,7 +12,9 @@ def eloInit25():
             ('Broncos', 0)]
 
     # Load the JSON data from the file
-    with open('src/python/nfl_2025/nflModel2024.json', 'r') as file:
+    import os
+    _dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(_dir, 'nflModel2024.json'), 'r') as file:
         data = json.load(file)
 
     # Create a dictionary for easy lookup of the initial Elo ratings

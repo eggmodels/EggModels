@@ -1,0 +1,112 @@
+/* ======================================
+   PARLAY
+   ====================================== */
+.parley {
+  text-align: center;
+}
+
+.parley-container {
+  display: flex;
+  justify-content: center;
+}
+
+.selected-winners {
+  display: inline-block;
+  text-align: center;
+  list-style-type: none;
+}
+
+.games-table {
+  width: 500px;
+  border-collapse: collapse;
+}
+
+.games-table td {
+  padding: var(--space-1) var(--space-2);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.games-table .separator {
+  font-weight: bold;
+}
+
+.games-table .left-column {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.games-table .right-column {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.games-table input[type='checkbox'] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  background-color: var(--color-surface);
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+
+.games-table input[type='checkbox']:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.games-table input[type='checkbox']:checked::before {
+  content: '\2713';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+}
+
+
+.team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin: 0 6px;
+}
+/* ======================================
+   RANKINGS
+   ====================================== */
+.rankings {
+  text-align: center;
+  color: var(--color-text);
+  margin: 0;
+  max-height: 1500px;
+}
+
+/* ======================================
+   SEASON SELECTOR
+   ====================================== */
+.season-select {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-size: clamp(16px, 3.5vw, 26px);
+  font-weight: bold;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3e%3cpath fill='none' stroke='%236B5045' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.2em center;
+  background-size: 0.7em;
+  padding-right: 1.2em;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.season-select:focus {
+  outline: 2px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+}

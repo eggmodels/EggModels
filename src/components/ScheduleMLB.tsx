@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import mlbScheduleData from '../python/mlb_2024/csv/mlb-elo-2024.json';
 import DatePicker from 'react-datepicker';
