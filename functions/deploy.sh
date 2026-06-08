@@ -6,10 +6,6 @@ FUNCTION_NAME="tennis-odds-pipeline"
 REGION="us-central1"
 RUNTIME="python312"
 
-# API Keys from ProphetX
-PROPHETX_ACCESS_KEY="09541cadd097cf38fd03c13299e665fe"
-PROPHETX_SECRET_KEY="6a12027d340cfecf0051f88553576532"
-
 echo "=========================================="
 echo "Tennis Odds Pipeline Deployment"
 echo "=========================================="
@@ -21,24 +17,31 @@ gcloud config set project ${PROJECT_ID}
 echo "✓ Project set to ${PROJECT_ID}"
 echo ""
 
-# Step 2: Create secrets
+# Step 2: Create Kalshi secrets
 echo "Step 2: Creating Secret Manager secrets..."
+echo "  You will be prompted to paste your Kalshi credentials."
+echo ""
 
-# Check if secrets already exist
-if gcloud secrets describe prophetx_access_key --project=${PROJECT_ID} &>/dev/null; then
-    echo "  - prophetx_access_key already exists, updating..."
-    echo -n "${PROPHETX_ACCESS_KEY}" | gcloud secrets versions add prophetx_access_key --data-file=- --project=${PROJECT_ID}
+# kalshi-api-key
+if gcloud secrets describe kalshi-api-key --project=${PROJECT_ID} &>/dev/null; then
+    echo "  - kalshi-api-key already exists, updating..."
+    read -rsp "  Paste Kalshi API key (input hidden): " KALSHI_API_KEY && echo
+    echo -n "${KALSHI_API_KEY}" | gcloud secrets versions add kalshi-api-key --data-file=- --project=${PROJECT_ID}
 else
-    echo "  - Creating prophetx_access_key..."
-    echo -n "${PROPHETX_ACCESS_KEY}" | gcloud secrets create prophetx_access_key --data-file=- --project=${PROJECT_ID} --replication-policy="automatic"
+    echo "  - Creating kalshi-api-key..."
+    read -rsp "  Paste Kalshi API key (input hidden): " KALSHI_API_KEY && echo
+    echo -n "${KALSHI_API_KEY}" | gcloud secrets create kalshi-api-key --data-file=- --project=${PROJECT_ID} --replication-policy="automatic"
 fi
 
-if gcloud secrets describe prophetx_secret_key --project=${PROJECT_ID} &>/dev/null; then
-    echo "  - prophetx_secret_key already exists, updating..."
-    echo -n "${PROPHETX_SECRET_KEY}" | gcloud secrets versions add prophetx_secret_key --data-file=- --project=${PROJECT_ID}
+# kalshi-private-key
+if gcloud secrets describe kalshi-private-key --project=${PROJECT_ID} &>/dev/null; then
+    echo "  - kalshi-private-key already exists, updating..."
+    read -rsp "  Paste Kalshi private key (input hidden): " KALSHI_PRIVATE_KEY && echo
+    echo -n "${KALSHI_PRIVATE_KEY}" | gcloud secrets versions add kalshi-private-key --data-file=- --project=${PROJECT_ID}
 else
-    echo "  - Creating prophetx_secret_key..."
-    echo -n "${PROPHETX_SECRET_KEY}" | gcloud secrets create prophetx_secret_key --data-file=- --project=${PROJECT_ID} --replication-policy="automatic"
+    echo "  - Creating kalshi-private-key..."
+    read -rsp "  Paste Kalshi private key (input hidden): " KALSHI_PRIVATE_KEY && echo
+    echo -n "${KALSHI_PRIVATE_KEY}" | gcloud secrets create kalshi-private-key --data-file=- --project=${PROJECT_ID} --replication-policy="automatic"
 fi
 
 echo "✓ Secrets created/updated"
@@ -49,13 +52,13 @@ echo "Step 3: Granting Cloud Function permissions to access secrets..."
 PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')
 CLOUD_FUNCTION_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
-gcloud secrets add-iam-policy-binding prophetx_access_key \
+gcloud secrets add-iam-policy-binding kalshi-api-key \
   --member="serviceAccount:${CLOUD_FUNCTION_SA}" \
   --role="roles/secretmanager.secretAccessor" \
   --project=${PROJECT_ID} \
   --quiet
 
-gcloud secrets add-iam-policy-binding prophetx_secret_key \
+gcloud secrets add-iam-policy-binding kalshi-private-key \
   --member="serviceAccount:${CLOUD_FUNCTION_SA}" \
   --role="roles/secretmanager.secretAccessor" \
   --project=${PROJECT_ID} \
@@ -96,7 +99,6 @@ echo ""
 # Step 6: Create Cloud Scheduler job
 echo "Step 6: Setting up Cloud Scheduler (runs daily at midnight UTC)..."
 
-# Check if job exists
 if gcloud scheduler jobs describe ${FUNCTION_NAME}-daily --location ${REGION} --project=${PROJECT_ID} &>/dev/null; then
     echo "  - Job exists, updating schedule..."
     gcloud scheduler jobs update http ${FUNCTION_NAME}-daily \
@@ -144,7 +146,7 @@ echo "1. Check the function logs to verify it's working:"
 echo "   gcloud functions logs read ${FUNCTION_NAME} --limit 50 --region ${REGION}"
 echo ""
 echo "2. View results in Firestore:"
-echo "   Go to: https://console.firebase.google.com/project/${PROJECT_ID}/firestore/data/~2Ftennis_odds~2Fcurrent"
+echo "   https://console.firebase.google.com/project/${PROJECT_ID}/firestore/data/~2Ftennis_odds~2Fcurrent"
 echo ""
-echo "3. Your website can now read from: firestore collection 'tennis_odds' document 'current'"
+echo "3. Your website reads from: Firestore collection 'tennis_odds' document 'current'"
 echo ""

@@ -6,6 +6,7 @@ import Parlay from './components/Parlay';
 import Rankings from './components/Rankings';
 import NavBar from './components/NavBar';
 import Home from './components/Home';
+import Tennis from './components/Tennis';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/nfl" element={<ScheduleNFL />} />
           <Route path="/nfl/parlay" element={<Parlay />} />
           <Route path="/nfl/rankings" element={<Rankings />} />
+          <Route path="/tennis" element={<Tennis />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

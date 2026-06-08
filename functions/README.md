@@ -20,9 +20,9 @@ functions/
 The `tennis_odds` function:
 
 1. **Scrapes Elo ratings** from TennisAbstract (ATP & WTA)
-2. **Fetches upcoming matches** from ProphetX API
+2. **Fetches upcoming matches** from Kalshi API
 3. **Calculates win probabilities** using surface-specific Elo ratings
-4. **Writes results** to Firestore in `tennis_odds/current` collection
+4. **Writes results** to Firestore at `tennis_odds/current`
 5. **Runs on schedule** daily at midnight UTC via Cloud Scheduler
 
 ## Quick Start
@@ -32,9 +32,9 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete setup instructions.
 In short:
 
 ```bash
-# 1. Add API keys to Secret Manager
-echo -n "YOUR_ACCESS_KEY" | gcloud secrets create prophetx_access_key --data-file=-
-echo -n "YOUR_SECRET_KEY" | gcloud secrets create prophetx_secret_key --data-file=-
+# 1. Add Kalshi credentials to Secret Manager
+echo -n "YOUR_KALSHI_API_KEY" | gcloud secrets create kalshi-api-key --data-file=-
+echo -n "YOUR_KALSHI_PRIVATE_KEY" | gcloud secrets create kalshi-private-key --data-file=-
 
 # 2. Deploy the function
 cd tennis_odds
@@ -51,9 +51,11 @@ gcloud scheduler jobs create http tennis-odds-daily \
   --location us-central1 \
   --schedule "0 0 * * *" \
   --http-method GET \
-  --uri https://REGION-egg-models.cloudfunctions.net/tennis-odds-pipeline \
+  --uri https://us-central1-egg-models.cloudfunctions.net/tennis-odds-pipeline \
   --tz UTC
 ```
+
+Or just run `./deploy.sh` (Mac/Linux) or `deploy.bat` (Windows) from the `functions/` directory — it handles everything interactively.
 
 ## Output
 
@@ -75,7 +77,7 @@ The function writes to Firestore at `tennis_odds/current`:
 
 ## Website Integration
 
-Your website reads from `tennis_odds/current` and displays the matches. No computation happens on the client.
+The React Tennis component reads from `tennis_odds/current` and displays win probabilities. No computation happens on the client.
 
 ## Monitoring
 
@@ -85,7 +87,7 @@ Check Cloud Function logs:
 gcloud functions logs read tennis-odds-pipeline --limit 50
 ```
 
-Monitor the scheduler:
+Trigger a manual run:
 
 ```bash
 gcloud scheduler jobs run tennis-odds-daily --location us-central1
@@ -99,8 +101,8 @@ gcloud firestore documents list tennis_odds
 
 ## API Keys
 
-API keys are stored in Google Cloud Secret Manager:
-- `prophetx_access_key` — ProphetX authentication
-- `prophetx_secret_key` — ProphetX authentication
+Kalshi credentials are stored in Google Cloud Secret Manager:
+- `kalshi-api-key` — Kalshi API key
+- `kalshi-private-key` — Kalshi private key
 
 Do **not** commit keys to git. See DEPLOYMENT.md for how to set them up securely.

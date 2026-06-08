@@ -48,6 +48,10 @@ function NavBar() {
           )}
         </div>
 
+        <NavLink to="/tennis" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Tennis
+        </NavLink>
+
         <NavLink to="/blog" className={({ isActive }) => (isActive ? 'active' : '')}>
           Blog
         </NavLink>

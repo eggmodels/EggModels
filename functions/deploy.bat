@@ -5,8 +5,6 @@ set PROJECT_ID=egg-models
 set FUNCTION_NAME=tennis-odds-pipeline
 set REGION=us-central1
 set RUNTIME=python312
-set PROPHETX_ACCESS_KEY=09541cadd097cf38fd03c13299e665fe
-set PROPHETX_SECRET_KEY=6a12027d340cfecf0051f88553576532
 
 echo ==========================================
 echo Tennis Odds Pipeline Deployment
@@ -19,23 +17,29 @@ echo ✓ Project set to %PROJECT_ID%
 echo.
 
 echo Step 2: Creating Secret Manager secrets...
+echo   You will be prompted to paste your Kalshi credentials.
+echo.
 
-gcloud secrets describe prophetx_access_key --project=%PROJECT_ID% >nul 2>&1
+gcloud secrets describe kalshi-api-key --project=%PROJECT_ID% >/dev/null 2>&1
 if %errorlevel% equ 0 (
-    echo   - prophetx_access_key already exists, updating...
-    echo %PROPHETX_ACCESS_KEY%| gcloud secrets versions add prophetx_access_key --data-file=- --project=%PROJECT_ID%
+    echo   - kalshi-api-key already exists, updating...
+    set /p KALSHI_API_KEY="  Paste Kalshi API key: "
+    echo !KALSHI_API_KEY!| gcloud secrets versions add kalshi-api-key --data-file=- --project=%PROJECT_ID%
 ) else (
-    echo   - Creating prophetx_access_key...
-    echo %PROPHETX_ACCESS_KEY%| gcloud secrets create prophetx_access_key --data-file=- --project=%PROJECT_ID% --replication-policy="automatic"
+    echo   - Creating kalshi-api-key...
+    set /p KALSHI_API_KEY="  Paste Kalshi API key: "
+    echo !KALSHI_API_KEY!| gcloud secrets create kalshi-api-key --data-file=- --project=%PROJECT_ID% --replication-policy="automatic"
 )
 
-gcloud secrets describe prophetx_secret_key --project=%PROJECT_ID% >nul 2>&1
+gcloud secrets describe kalshi-private-key --project=%PROJECT_ID% >/dev/null 2>&1
 if %errorlevel% equ 0 (
-    echo   - prophetx_secret_key already exists, updating...
-    echo %PROPHETX_SECRET_KEY%| gcloud secrets versions add prophetx_secret_key --data-file=- --project=%PROJECT_ID%
+    echo   - kalshi-private-key already exists, updating...
+    set /p KALSHI_PRIVATE_KEY="  Paste Kalshi private key: "
+    echo !KALSHI_PRIVATE_KEY!| gcloud secrets versions add kalshi-private-key --data-file=- --project=%PROJECT_ID%
 ) else (
-    echo   - Creating prophetx_secret_key...
-    echo %PROPHETX_SECRET_KEY%| gcloud secrets create prophetx_secret_key --data-file=- --project=%PROJECT_ID% --replication-policy="automatic"
+    echo   - Creating kalshi-private-key...
+    set /p KALSHI_PRIVATE_KEY="  Paste Kalshi private key: "
+    echo !KALSHI_PRIVATE_KEY!| gcloud secrets create kalshi-private-key --data-file=- --project=%PROJECT_ID% --replication-policy="automatic"
 )
 
 echo ✓ Secrets created/updated
@@ -45,9 +49,9 @@ echo Step 3: Granting Cloud Function permissions...
 for /f "tokens=*" %%i in ('gcloud projects describe %PROJECT_ID% --format="value(projectNumber)"') do set PROJECT_NUMBER=%%i
 set CLOUD_FUNCTION_SA=%PROJECT_NUMBER%-compute@developer.gserviceaccount.com
 
-gcloud secrets add-iam-policy-binding prophetx_access_key --member="serviceAccount:%CLOUD_FUNCTION_SA%" --role="roles/secretmanager.secretAccessor" --project=%PROJECT_ID% --quiet
+gcloud secrets add-iam-policy-binding kalshi-api-key --member="serviceAccount:%CLOUD_FUNCTION_SA%" --role="roles/secretmanager.secretAccessor" --project=%PROJECT_ID% --quiet
 
-gcloud secrets add-iam-policy-binding prophetx_secret_key --member="serviceAccount:%CLOUD_FUNCTION_SA%" --role="roles/secretmanager.secretAccessor" --project=%PROJECT_ID% --quiet
+gcloud secrets add-iam-policy-binding kalshi-private-key --member="serviceAccount:%CLOUD_FUNCTION_SA%" --role="roles/secretmanager.secretAccessor" --project=%PROJECT_ID% --quiet
 
 echo ✓ Permissions granted
 echo.
@@ -70,7 +74,7 @@ echo.
 
 echo Step 6: Setting up Cloud Scheduler...
 
-gcloud scheduler jobs describe %FUNCTION_NAME%-daily --location %REGION% --project=%PROJECT_ID% >nul 2>&1
+gcloud scheduler jobs describe %FUNCTION_NAME%-daily --location %REGION% --project=%PROJECT_ID% >/dev/null 2>&1
 if %errorlevel% equ 0 (
     echo   - Job exists, updating schedule...
     gcloud scheduler jobs update http %FUNCTION_NAME%-daily --location %REGION% --schedule "0 0 * * *" --http-method GET --uri %FUNCTION_URL% --tz UTC --project %PROJECT_ID% --quiet
@@ -104,5 +108,5 @@ echo.
 echo 2. View results in Firestore at:
 echo    https://console.firebase.google.com/project/%PROJECT_ID%/firestore
 echo.
-echo 3. Your website reads from: firestore collection 'tennis_odds' document 'current'
+echo 3. Your website reads from: Firestore collection 'tennis_odds' document 'current'
 echo.
