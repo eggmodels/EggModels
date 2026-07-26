@@ -1,0 +1,305 @@
+{
+  "timestamp": "2026-07-26T21:45:05.210532+00:00",
+  "matches": [
+    {
+      "Player 1": "Luca Van Assche",
+      "Player 2": "Alexander Blockx",
+      "Player 1 Win Probability": 0.243,
+      "Player 2 Win Probability": 0.757,
+      "Player 1 Country": "FR",
+      "Player 2 Country": "BE",
+      "tournament": "Estoril",
+      "surface": "clay"
+    },
+    {
+      "Player 1": "Thiago Seyboth Wild",
+      "Player 2": "Marc Andrea Huesler",
+      "Player 1 Win Probability": 0.51,
+      "Player 2 Win Probability": 0.49,
+      "Player 1 Country": "BR",
+      "Player 2 Country": "CH",
+      "tournament": "Zug challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Alex Michelsen",
+      "Player 2": "Jacob Fearnley",
+      "Player 1 Win Probability": 0.534,
+      "Player 2 Win Probability": 0.466,
+      "Player 1 Country": "US",
+      "Player 2 Country": "GB",
+      "tournament": "Bloomfield Hills challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Toby Samuel",
+      "Player 2": "Liam Draxl",
+      "Player 1 Win Probability": 0.693,
+      "Player 2 Win Probability": 0.307,
+      "Player 1 Country": "GB",
+      "Player 2 Country": "CA",
+      "tournament": "Winnipeg challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Luka Pavlovic",
+      "Player 2": "Matteo Martineau",
+      "Player 1 Win Probability": 0.647,
+      "Player 2 Win Probability": 0.353,
+      "Player 1 Country": "FR",
+      "Player 2 Country": "FR",
+      "tournament": "Segovia challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Diego Dedura Palomero",
+      "Player 2": "Otto Virtanen",
+      "Player 1 Win Probability": 0.184,
+      "Player 2 Win Probability": 0.816,
+      "Player 1 Country": "DE",
+      "Player 2 Country": "FI",
+      "tournament": "Tampere challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Stefanos Sakellaridis",
+      "Player 2": "Miguel Damas",
+      "Player 1 Win Probability": 0.685,
+      "Player 2 Win Probability": 0.315,
+      "Player 1 Country": "GR",
+      "Player 2 Country": "ES",
+      "tournament": "Bonn challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Bernard Tomic",
+      "Player 2": "Miguel Tobon",
+      "Player 1 Win Probability": 0.79,
+      "Player 2 Win Probability": 0.21,
+      "Player 1 Country": "AU",
+      "Player 2 Country": "CO",
+      "tournament": "Los Cabos",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Alan Magadan",
+      "Player 2": "Garrett Johns",
+      "Player 1 Win Probability": 0.492,
+      "Player 2 Win Probability": 0.508,
+      "Player 1 Country": "MX",
+      "Player 2 Country": "US",
+      "tournament": "Los Cabos",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Juan Alejandro Hernandez Serrano",
+      "Player 2": "Nicolas Mejia",
+      "Player 1 Win Probability": 0.209,
+      "Player 2 Win Probability": 0.791,
+      "Player 1 Country": "MX",
+      "Player 2 Country": "CO",
+      "tournament": "Los Cabos",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Thiago Monteiro",
+      "Player 2": "Lucia Bronzetti",
+      "Player 1 Win Probability": 0.442,
+      "Player 2 Win Probability": 0.558,
+      "Player 1 Country": "BR",
+      "Player 2 Country": "IT",
+      "tournament": "San Marino challenger",
+      "surface": "grass"
+    },
+    {
+      "Player 1": "Martin Damm",
+      "Player 2": "Abedallah Shelbayh",
+      "Player 1 Win Probability": 0.769,
+      "Player 2 Win Probability": 0.231,
+      "Player 1 Country": "US",
+      "Player 2 Country": "JO",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Aleksandar Vukic",
+      "Player 2": "Alex Bolt",
+      "Player 1 Win Probability": 0.64,
+      "Player 2 Win Probability": 0.36,
+      "Player 1 Country": "AU",
+      "Player 2 Country": "AU",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Tomas Martin Etcheverry",
+      "Player 2": "Moez Echargui",
+      "Player 1 Win Probability": 0.877,
+      "Player 2 Win Probability": 0.123,
+      "Player 1 Country": "US",
+      "Player 2 Country": "TN",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Marcos Giron",
+      "Player 2": "Andre Ilagan",
+      "Player 1 Win Probability": 0.79,
+      "Player 2 Win Probability": 0.21,
+      "Player 1 Country": "US",
+      "Player 2 Country": "US",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Cruz Hewitt",
+      "Player 2": "Zachary Svajda",
+      "Player 1 Win Probability": 0.086,
+      "Player 2 Win Probability": 0.914,
+      "Player 1 Country": "AU",
+      "Player 2 Country": "US",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Zachary Svajda",
+      "Player 2": "Mackenzie Mcdonald",
+      "Player 1 Win Probability": 0.63,
+      "Player 2 Win Probability": 0.37,
+      "Player 1 Country": "US",
+      "Player 2 Country": "US",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Lilli Tagger",
+      "Player 2": "Daria Snigur",
+      "Player 1 Win Probability": 0.393,
+      "Player 2 Win Probability": 0.607,
+      "Player 1 Country": "AT",
+      "Player 2 Country": "UA",
+      "tournament": "Livesport Prague Open",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Tamara Korpatsch",
+      "Player 2": "Anna Bondar",
+      "Player 1 Win Probability": 0.384,
+      "Player 2 Win Probability": 0.616,
+      "Player 1 Country": "DE",
+      "Player 2 Country": "HU",
+      "tournament": "Hamburg WTA",
+      "surface": "clay"
+    },
+    {
+      "Player 1": "Jack Pinnington Jones",
+      "Player 2": "Fiona Ferro",
+      "Player 1 Win Probability": 0.406,
+      "Player 2 Win Probability": 0.594,
+      "Player 1 Country": "GB",
+      "Player 2 Country": "FR",
+      "tournament": "Palermo",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Yelyzaveta Kotliar",
+      "Player 2": "Alessandra Mazzola",
+      "Player 1 Win Probability": 0.451,
+      "Player 2 Win Probability": 0.549,
+      "Player 1 Country": "UA",
+      "Player 2 Country": "IT",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Andreea Prisacariu",
+      "Player 2": "Deborah Chiesa",
+      "Player 1 Win Probability": 0.348,
+      "Player 2 Win Probability": 0.652,
+      "Player 1 Country": "RO",
+      "Player 2 Country": "IT",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Lucija Ciric Bagaric",
+      "Player 2": "Amandine Monnot",
+      "Player 1 Win Probability": 0.159,
+      "Player 2 Win Probability": 0.841,
+      "Player 1 Country": "HR",
+      "Player 2 Country": "FR",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Maria Sara Popa",
+      "Player 2": "Amarissa Kiara Toth",
+      "Player 1 Win Probability": 0.341,
+      "Player 2 Win Probability": 0.659,
+      "Player 1 Country": "RO",
+      "Player 2 Country": "HU",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Miriana Tona",
+      "Player 2": "Isabella Shinikova",
+      "Player 1 Win Probability": 0.365,
+      "Player 2 Win Probability": 0.635,
+      "Player 1 Country": "IT",
+      "Player 2 Country": "BG",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Briana Szabo",
+      "Player 2": "Gina Feistel",
+      "Player 1 Win Probability": 0.29,
+      "Player 2 Win Probability": 0.71,
+      "Player 1 Country": "RO",
+      "Player 2 Country": "PL",
+      "tournament": "Targu Mures",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Veronika Kudermetova",
+      "Player 2": "Varvara Lepchenko",
+      "Player 1 Win Probability": 0.792,
+      "Player 2 Win Probability": 0.208,
+      "Player 1 Country": "UZ",
+      "Player 2 Country": "US",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Julieta Pareja",
+      "Player 2": "Heather Watson",
+      "Player 1 Win Probability": 0.533,
+      "Player 2 Win Probability": 0.467,
+      "Player 1 Country": "US",
+      "Player 2 Country": "GB",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Rebecca Sramkova",
+      "Player 2": "Gabriela Andrea Knutson",
+      "Player 1 Win Probability": 0.737,
+      "Player 2 Win Probability": 0.263,
+      "Player 1 Country": "SK",
+      "Player 2 Country": "CZ",
+      "tournament": "Washington",
+      "surface": "hard"
+    },
+    {
+      "Player 1": "Daria Kasatkina",
+      "Player 2": "Colton Smith",
+      "Player 1 Win Probability": 0.731,
+      "Player 2 Win Probability": 0.269,
+      "Player 1 Country": "AU",
+      "Player 2 Country": "US",
+      "tournament": "Washington",
+      "surface": "hard"
+    }
+  ]
+}

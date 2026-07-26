@@ -7,115 +7,69 @@ import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
 from io import StringIO
-from bisect import bisect_right
 from rapidfuzz import process, fuzz
-from scipy.optimize import brentq
-from datetime import datetime, timedelta
-import uuid
+from datetime import datetime, timezone
 import unicodedata
 from google.cloud import firestore
-from google.cloud import secretmanager
-import os
-from kalshi_python.client import Client
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 PROJECT_ID = "egg-models"
 
-def get_secret(secret_id, version_id="latest"):
-    """Retrieve a secret from Google Cloud Secret Manager."""
-    client = secretmanager.SecretManagerServiceClient()
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
-    response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode("UTF-8")
+COUNTRY_NAME_TO_ISO = {
+    'afghanistan': 'AF', 'albania': 'AL', 'algeria': 'DZ', 'argentina': 'AR',
+    'armenia': 'AM', 'australia': 'AU', 'austria': 'AT', 'azerbaijan': 'AZ',
+    'bahamas': 'BS', 'bahrain': 'BH', 'bangladesh': 'BD', 'barbados': 'BB',
+    'belarus': 'BY', 'belgium': 'BE', 'bolivia': 'BO', 'bosnia': 'BA',
+    'bosnia and herzeg.': 'BA', 'bosnia and herzegovina': 'BA',
+    'botswana': 'BW', 'brazil': 'BR', 'brunei': 'BN', 'bulgaria': 'BG',
+    'burkina faso': 'BF', 'cambodia': 'KH', 'cameroon': 'CM', 'canada': 'CA',
+    'chile': 'CL', 'china': 'CN', 'chinese taipei': 'TW', 'colombia': 'CO',
+    'congo': 'CG', 'costa rica': 'CR', 'croatia': 'HR', 'cuba': 'CU',
+    'cyprus': 'CY', 'czech republic': 'CZ', 'denmark': 'DK',
+    'dominican rep.': 'DO', 'dominican republic': 'DO', 'ecuador': 'EC',
+    'egypt': 'EG', 'el salvador': 'SV', 'england': 'GB', 'estonia': 'EE',
+    'ethiopia': 'ET', 'finland': 'FI', 'france': 'FR', 'gabon': 'GA',
+    'georgia': 'GE', 'germany': 'DE', 'ghana': 'GH', 'great britain': 'GB',
+    'greece': 'GR', 'guatemala': 'GT', 'haiti': 'HT', 'honduras': 'HN',
+    'hong kong': 'HK', 'hungary': 'HU', 'iceland': 'IS', 'india': 'IN',
+    'indonesia': 'ID', 'iran': 'IR', 'iraq': 'IQ', 'ireland': 'IE',
+    'israel': 'IL', 'italy': 'IT', 'ivory coast': 'CI', 'jamaica': 'JM',
+    'japan': 'JP', 'jordan': 'JO', 'kazakhstan': 'KZ', 'kenya': 'KE',
+    'korea': 'KR', 'south korea': 'KR', 'kuwait': 'KW', 'kyrgyzstan': 'KG',
+    'latvia': 'LV', 'lebanon': 'LB', 'libya': 'LY', 'liechtenstein': 'LI',
+    'lithuania': 'LT', 'luxembourg': 'LU', 'macau': 'MO', 'malaysia': 'MY',
+    'mali': 'ML', 'malta': 'MT', 'mauritius': 'MU', 'mexico': 'MX',
+    'moldova': 'MD', 'moldavia': 'MD', 'monaco': 'MC', 'mongolia': 'MN',
+    'montenegro': 'ME', 'morocco': 'MA', 'mozambique': 'MZ', 'myanmar': 'MM',
+    'namibia': 'NA', 'nepal': 'NP', 'netherlands': 'NL', 'new zealand': 'NZ',
+    'nicaragua': 'NI', 'niger': 'NE', 'nigeria': 'NG', 'north macedonia': 'MK',
+    'northern ireland': 'GB', 'norway': 'NO', 'oman': 'OM', 'pakistan': 'PK',
+    'panama': 'PA', 'paraguay': 'PY', 'peru': 'PE', 'philippines': 'PH',
+    'poland': 'PL', 'portugal': 'PT', 'puerto rico': 'PR', 'qatar': 'QA',
+    'romania': 'RO', 'russia': 'RU', 'rsa': 'ZA', 'rwanda': 'RW',
+    'saudi arabia': 'SA', 'scotland': 'GB', 'senegal': 'SN', 'serbia': 'RS',
+    'singapore': 'SG', 'slovakia': 'SK', 'slovenia': 'SI',
+    'south africa': 'ZA', 'spain': 'ES', 'sri lanka': 'LK', 'sudan': 'SD',
+    'sweden': 'SE', 'switzerland': 'CH', 'syria': 'SY', 'taiwan': 'TW',
+    'tajikistan': 'TJ', 'tanzania': 'TZ', 'thailand': 'TH', 'togo': 'TG',
+    'trinidad': 'TT', 'trinidad and tobago': 'TT', 'tunisia': 'TN',
+    'turkey': 'TR', 'turkmenistan': 'TM', 'uae': 'AE', 'uganda': 'UG',
+    'ukraine': 'UA', 'united kingdom': 'GB', 'united states': 'US',
+    'uruguay': 'UY', 'usa': 'US', 'uzbekistan': 'UZ', 'venezuela': 'VE',
+    'viet nam': 'VN', 'vietnam': 'VN', 'wales': 'GB', 'zambia': 'ZM',
+    'zimbabwe': 'ZW',
+}
+
+REQUEST_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+}
 
 # ============= UTILITY FUNCTIONS =============
 
-def american_to_probability(odds):
-    odds = int(odds)
-    if odds > 0:
-        return np.round(100 / (odds + 100), 3)
-    else:
-        return np.round(abs(odds) / (abs(odds) + 100), 3)
-
-def elo_win_probability(player_celo, opponent_celo):
-    return np.round(1 / (1 + 10 ** ((opponent_celo - player_celo) / 400)), 3)
-
-def american_to_decimal(odds):
-    odds = int(odds)
-    return np.round(1 + (odds / 100) if odds > 0 else 1 + (100 / abs(odds)), 3)
-
-def decimal_to_american(decimal_odds):
-    if decimal_odds >= 2.0:
-        return round((decimal_odds - 1) * 100)
-    else:
-        return round(-100 / (decimal_odds - 1))
-
-def decimal_to_probability(decimal_odds):
-    return 1 / decimal_odds
-
-def probability_to_american(prob):
-    if prob <= 0 or prob >= 1:
-        return None
-    if prob > 0.5:
-        return round(-100 * prob / (1 - prob))
-    else:
-        return round(100 * (1 - prob) / prob)
-
-def make_odds_10_percent_worse(original_american_odds):
-    decimal_odds = american_to_decimal(original_american_odds)
-    base = 1
-    profit = decimal_odds - base
-    worse_profit = profit * 0.95
-    worse_decimal_odds = base + worse_profit
-    return decimal_to_american(worse_decimal_odds)
-
-def improve_odds_by_20_percent(odds):
-    implied_prob = american_to_probability(odds)
-    improved_prob = implied_prob * 0.8
-    return probability_to_american(improved_prob)
-
-def kelly_allocation_from_odds(breakeven_odds, list_odds):
-    try:
-        p = decimal_to_probability(american_to_decimal(breakeven_odds))
-        b = american_to_decimal(list_odds) - 1
-        q = 1 - p
-        kelly_fraction = (b * p - q) / b
-        return max(kelly_fraction, 0)
-    except:
-        return 0
-
-VALID_ODDS_BACKUP = sorted([
-    -10000, -7500, -5000, -4500, -4000, -3500, -3000, -2750, -2500, -2250, -2000,
-    -1900, -1800, -1700, -1600, -1500, -1400, -1300, -1200, -1100, -1000, -980,
-    -960, -940, -920, -900, -880, -860, -840, -820, -800, -780, -760, -740, -720,
-    -700, -680, -660, -640, -620, -600, -580, -560, -540, -520, -500, -490, -480,
-    -470, -460, -450, -440, -430, -420, -410, -400, -390, -380, -370, -360, -350,
-    -340, -330, -320, -310, -300, -295, -290, -285, -280, -275, -270, -265, -260,
-    -255, -250, -245, -240, -235, -230, -225, -220, -215, -210, -205, -200, -198,
-    -196, -194, -192, -190, -188, -186, -184, -182, -180, -178, -176, -174, -172,
-    -170, -168, -166, -164, -162, -160, -158, -156, -154, -152, -150, -148, -146,
-    -144, -142, -140, -138, -136, -134, -132, -130, -128, -126, -124, -122, -120,
-    -119, -118, -117, -116, -115, -114, -113, -112, -111, -110, -109, -108, -107,
-    -106, -105, -104, -103, -102, -101, 100, 101, 102, 103, 104, 105, 106, 107,
-    108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 124, 126,
-    128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158,
-    160, 162, 164, 166, 168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 188, 190,
-    192, 194, 196, 198, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255,
-    260, 265, 270, 275, 280, 285, 290, 295, 300, 310, 320, 330, 340, 350, 360, 370,
-    380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 520, 540, 560,
-    580, 600, 620, 640, 660, 680, 700, 720, 740, 760, 780, 800, 820, 840, 860, 880,
-    900, 920, 940, 960, 980, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800,
-    1900, 2000, 2250, 2500, 2750, 3000, 3500, 4000, 4500, 5000, 7500, 10000
-])
-
-def get_valid_odds(odds):
-    if odds in VALID_ODDS_BACKUP:
-        return odds
-    idx = bisect_right(VALID_ODDS_BACKUP, odds)
-    return VALID_ODDS_BACKUP[idx] if idx < len(VALID_ODDS_BACKUP) else None
+def elo_win_probability(player_elo, opponent_elo):
+    return np.round(1 / (1 + 10 ** ((opponent_elo - player_elo) / 400)), 3)
 
 def normalize_name(name):
     return (
@@ -127,36 +81,32 @@ def normalize_name(name):
         .strip()
     )
 
-def fuzzy_match_column(df_main, df_lookup, main_col, lookup_col, threshold=90):
-    df_main = df_main.copy()
-    df_lookup = df_lookup.copy()
-    df_main['normalized'] = df_main[main_col].map(normalize_name)
-    df_lookup['normalized'] = df_lookup[lookup_col].map(normalize_name)
-    lookup_dict = dict(zip(df_lookup['normalized'], df_lookup[lookup_col]))
-    matches = df_main['normalized'].dropna().unique()
-    lookup_names = list(lookup_dict.keys())
-    match_dict = {}
-    for name in matches:
-        match, score, _ = process.extractOne(name, lookup_names, scorer=fuzz.token_sort_ratio)
-        if score >= threshold:
-            match_dict[name] = lookup_dict[match]
-        else:
-            match_dict[name] = None
-    df_main[main_col + "_matched"] = df_main['normalized'].map(match_dict)
-    df_main = df_main.drop(columns=['normalized'])
-    return df_main
+def strip_initial(name):
+    """Remove trailing single-letter initial from TennisExplorer format.
+    'Van Assche L.' -> 'Van Assche', 'Seyboth Wild T.' -> 'Seyboth Wild'
+    """
+    return re.sub(r'\s+[A-Za-z]\.\s*$', '', name).strip()
+
+def fuzzy_match_name(name, lookup_names, threshold=90):
+    """Match a TennisExplorer name (Last F.) against TennisAbstract names (First Last)."""
+    stripped = strip_initial(name)
+    normalized = normalize_name(stripped)
+    if not normalized:
+        return None
+    result = process.extractOne(normalized, lookup_names, scorer=fuzz.token_set_ratio)
+    if result and result[1] >= threshold:
+        return result[0]
+    return None
 
 def bo3_to_game_prob(P_bo3):
-    """Estimate single-game win probability p from best-of-3 match win probability P_bo3."""
-    p1 = np.roots([-2, 3, 0, -1*P_bo3])[1]
-    return p1
+    roots = np.roots([-2, 3, 0, -1 * P_bo3])
+    real_roots = [r.real for r in roots if np.isreal(r) and 0 < r.real < 1]
+    return real_roots[0] if real_roots else P_bo3
 
 def game_prob_to_bo5(p):
-    """Compute best-of-5 match win probability from single-game win probability p."""
     return p**3 * (10 - 15*p + 6*p**2)
 
 def bo3_to_bo5(P_bo3):
-    """Convert best-of-3 match win probability to best-of-5 match win probability."""
     p = bo3_to_game_prob(P_bo3)
     return game_prob_to_bo5(p)
 
@@ -171,7 +121,7 @@ def scrape_elo_ratings():
 
     try:
         url = "https://tennisabstract.com/reports/atp_elo_ratings.html"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=REQUEST_HEADERS, timeout=15)
         tables = BeautifulSoup(response.text, "html.parser").find_all("table")
         atp_elos = pd.read_html(StringIO(str(tables[2])))[0]
     except Exception as e:
@@ -179,7 +129,7 @@ def scrape_elo_ratings():
 
     try:
         url = "https://tennisabstract.com/reports/wta_elo_ratings.html"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=REQUEST_HEADERS, timeout=15)
         tables = BeautifulSoup(response.text, "html.parser").find_all("table")
         wta_elos = pd.read_html(StringIO(str(tables[2])))[0]
     except Exception as e:
@@ -195,247 +145,266 @@ def scrape_elo_ratings():
     atp_elos['tour'] = 'ATP'
     wta_elos['tour'] = 'WTA'
 
-    combined_elos = pd.concat([atp_elos.reset_index(drop=True), wta_elos.reset_index(drop=True)], ignore_index=True)
-    combined_elos = combined_elos.loc[:, ~combined_elos.columns.str.contains('^Unnamed')]
-    combined_elos['Rank'] = combined_elos.apply(
-        lambda row: row['ATP Rank'] if row['tour'] == 'ATP' else row['WTA Rank'], axis=1
-    )
-    combined_elos = combined_elos.drop(columns=['ATP Rank', 'WTA Rank'], errors='ignore')
+    combined = pd.concat([atp_elos.reset_index(drop=True), wta_elos.reset_index(drop=True)], ignore_index=True)
+    combined = combined.loc[:, ~combined.columns.str.contains('^Unnamed')]
 
-    logger.info(f"Scraped {len(combined_elos)} players")
-    return combined_elos
+    logger.info(f"Scraped {len(combined)} players with Elo ratings")
+    return combined
 
-def get_kalshi_matches(kalshi_client):
-    """Fetch upcoming tennis matches from Kalshi API."""
-    logger.info("Fetching Kalshi tennis markets...")
 
-    match_rows = []
+def scrape_tennis_explorer_matches(match_type='atp-single'):
+    """Scrape today's matches from TennisExplorer."""
+    url = f'https://www.tennisexplorer.com/results/?type={match_type}'
+    logger.info(f"Fetching TennisExplorer matches: {url}")
 
     try:
-        # Get all active markets
-        markets = kalshi_client.get_markets(limit=1000)
-
-        # Filter for tennis markets
-        tennis_markets = [m for m in markets if 'tennis' in m.get('title', '').lower()]
-
-        logger.info(f"Found {len(tennis_markets)} tennis markets")
-
-        for market in tennis_markets:
-            title = market.get('title', '')
-            event_expires_at = market.get('event_expires_at')
-
-            # Parse match date from market expiration time
-            match_date = None
-            if event_expires_at:
-                try:
-                    match_date = datetime.fromisoformat(event_expires_at.replace('Z', '+00:00')).date()
-                except:
-                    pass
-
-            # Extract player names from market title
-            # Typical format: "Player A beats Player B in [Tournament] [Date]"
-            players = extract_tennis_players_from_title(title)
-
-            if players and len(players) == 2:
-                match_rows.append({
-                    'event_name': extract_tournament_from_title(title),
-                    'event_id': market.get('id'),
-                    'match_name': title,
-                    'Player': players[0],
-                    'Opponent': players[1],
-                    'match_date': match_date,
-                    'status': market.get('status', 'open')
-                })
-
-        if not match_rows:
-            logger.info("No tennis matches found in Kalshi markets")
-            return pd.DataFrame()
-
-        matches = pd.DataFrame(match_rows)
-        matches['Player'] = matches['Player'].apply(normalize_name)
-        matches['Opponent'] = matches['Opponent'].apply(normalize_name)
-        matches['match_date'] = pd.to_datetime(matches['match_date'])
-
-        today = pd.Timestamp(datetime.today().date())
-        tomorrow = today + pd.Timedelta(days=1)
-        matches = matches[matches['match_date'].dt.normalize().isin([today, tomorrow])]
-        matches = matches[matches['status'].isin(['open', 'active'])]
-
-        logger.info(f"Found {len(matches)} upcoming tennis matches")
-        return matches
-
+        r = requests.get(url, headers=REQUEST_HEADERS, timeout=15)
+        r.raise_for_status()
     except Exception as e:
-        logger.error(f"Error fetching Kalshi matches: {e}")
-        return pd.DataFrame()
+        logger.error(f"TennisExplorer fetch failed: {e}")
+        return []
 
-def extract_tennis_players_from_title(title):
-    """Extract player names from Kalshi market title."""
-    # Common patterns: "Player A beats Player B" or "Will Player A beat Player B"
-    title_lower = title.lower()
+    soup = BeautifulSoup(r.text, 'html.parser')
+    table = soup.find('table', class_='result')
+    if not table:
+        return []
 
-    # Try "beats" pattern
-    if ' beats ' in title_lower:
-        parts = title.split(' beats ')
-        if len(parts) == 2:
-            player_a = parts[0].strip()
-            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
-            return [player_a, player_b]
+    rows = table.find_all('tr')
+    matches = []
+    current_tournament = ''
+    current_match = {}
 
-    # Try "beat" pattern
-    if ' beat ' in title_lower:
-        parts = title.split(' beat ')
-        if len(parts) == 2:
-            player_a = parts[0].strip()
-            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
-            return [player_a, player_b]
+    for row in rows:
+        cls = ' '.join(row.get('class', []))
 
-    # Try "vs" pattern
-    if ' vs ' in title_lower or ' v ' in title_lower:
-        separator = ' vs ' if ' vs ' in title_lower else ' v '
-        parts = title.split(separator)
-        if len(parts) >= 2:
-            player_a = parts[0].strip()
-            player_b = parts[1].split(' in ')[0].strip() if ' in ' in parts[1] else parts[1].split(' on ')[0].strip()
-            return [player_a, player_b]
-
-    return None
-
-def extract_tournament_from_title(title):
-    """Extract tournament name from market title."""
-    # Look for tournament names in the title
-    tournaments = ['wimbledon', 'us open', 'french open', 'australian open', 'atp', 'wta', 'masters', 'slam']
-
-    for tournament in tournaments:
-        if tournament.lower() in title.lower():
-            return tournament.title()
-
-    # Extract what's after "in" or "on"
-    if ' in ' in title:
-        return title.split(' in ')[-1].split(' on ')[0].strip()
-    if ' on ' in title:
-        return title.split(' on ')[-1].strip()
-
-    return 'Unknown Tournament'
-
-def get_prophetx_odds(matches, auth_header, base_url):
-    """Fetch moneyline odds from ProphetX."""
-    logger.info("Fetching ProphetX odds...")
-
-    all_rows = []
-    unique_event_ids = list(set(matches['event_id']))
-
-    for event in unique_event_ids:
-        params = {"event_id": event}
-        response = requests.get(base_url + "/v2/mm/get_markets", headers=auth_header, params=params).json()
-
-        if response['data'].get('markets') is None:
+        # Tournament header row
+        if 'head' in cls and 'flags' in cls:
+            tds = row.find_all('td')
+            current_tournament = tds[0].get_text(strip=True) if tds else ''
             continue
 
-        for market in response['data']['markets']:
-            if market['name'] == 'Moneyline':
-                for group in market.get('selections', []):
-                    for selection in group:
-                        all_rows.append({
-                            "event_id": event,
-                            "competitor_id": selection['competitor_id'],
-                            "name": selection['name'],
-                            "odds": selection['odds'],
-                            "line_id": selection['line_id']
-                        })
+        # Skip minor/non-tour events
+        t_lower = current_tournament.lower()
+        if any(x in t_lower for x in ['utr', 'futures', 'itf']):
+            continue
 
-    df = pd.DataFrame(all_rows)
-    df[['name', 'line_id', 'odds']] = df[['name', 'line_id', 'odds']].fillna(
-        {'name': 'Unknown', 'line_id': 'Unknown', 'odds': float('-inf')}
-    )
+        # Player 1 row (has 'bott' = first player of pair)
+        if 'bott' in cls and 'head' not in cls:
+            name_td = row.find('td', class_='t-name')
+            if name_td:
+                link = name_td.find('a')
+                if link:
+                    href = link.get('href', '')
+                    slug = href.strip('/').split('/')[-1] if href else ''
+                    name = link.get_text(strip=True)
+                    name = re.sub(r'\s*\(\d+\)\s*$', '', name)
+                    name = re.sub(r'\s*\(WC\)\s*$', '', name, flags=re.IGNORECASE)
+                    name = re.sub(r'\s*\(Q\)\s*$', '', name, flags=re.IGNORECASE)
+                    name = re.sub(r'\s*\(LL\)\s*$', '', name, flags=re.IGNORECASE)
+                    current_match = {
+                        'Player': name.strip(),
+                        'Player_slug': slug,
+                        'tournament': current_tournament,
+                    }
 
-    df_max_odds = df.loc[df.groupby(['name', 'line_id'])['odds'].idxmax()]
-    df_max_odds = df_max_odds.replace({'name': 'Unknown', 'line_id': 'Unknown', 'odds': float('-inf')}, '')
-    df_max_odds = df_max_odds.drop(columns=[col for col in ['stake', 'updated_at', 'display_odds'] if col in df.columns])
+        # Player 2 row (follows player 1, no 'bott')
+        elif 'bott' not in cls and 'head' not in cls and current_match:
+            name_td = row.find('td', class_='t-name')
+            if name_td:
+                link = name_td.find('a')
+                if link:
+                    href = link.get('href', '')
+                    slug = href.strip('/').split('/')[-1] if href else ''
+                    name = link.get_text(strip=True)
+                    name = re.sub(r'\s*\(\d+\)\s*$', '', name)
+                    name = re.sub(r'\s*\(WC\)\s*$', '', name, flags=re.IGNORECASE)
+                    name = re.sub(r'\s*\(Q\)\s*$', '', name, flags=re.IGNORECASE)
+                    name = re.sub(r'\s*\(LL\)\s*$', '', name, flags=re.IGNORECASE)
+                    current_match['Opponent'] = name.strip()
+                    current_match['Opponent_slug'] = slug
+                    matches.append(current_match.copy())
+                    current_match = {}
 
-    df_max_odds['name'] = df_max_odds['name'].apply(normalize_name)
+    logger.info(f"Found {len(matches)} matches from TennisExplorer ({match_type})")
+    return matches
 
-    logger.info(f"Found odds for {len(df_max_odds)} players")
-    return df_max_odds
+
+def get_all_matches():
+    """Fetch both ATP and WTA matches."""
+    atp_matches = scrape_tennis_explorer_matches('atp-single')
+    wta_matches = scrape_tennis_explorer_matches('wta-single')
+
+    for m in atp_matches:
+        m['tour'] = 'ATP'
+    for m in wta_matches:
+        m['tour'] = 'WTA'
+
+    all_matches = atp_matches + wta_matches
+    logger.info(f"Total matches: {len(all_matches)} (ATP: {len(atp_matches)}, WTA: {len(wta_matches)})")
+    return all_matches
+
+
+def get_player_country(slug):
+    """Get player country ISO code from their TennisExplorer profile."""
+    url = f'https://www.tennisexplorer.com/player/{slug}/'
+    try:
+        r = requests.get(url, headers=REQUEST_HEADERS, timeout=8)
+        if r.status_code != 200:
+            return ''
+        text = BeautifulSoup(r.text, 'html.parser').get_text()
+        match = re.search(r'Country:\s*([A-Za-z\s\.\-\']+?)(?=Age:|Current|Height|Born|Sex)', text)
+        if match:
+            country_name = match.group(1).strip().lower()
+            return COUNTRY_NAME_TO_ISO.get(country_name, '')
+    except Exception as e:
+        logger.debug(f"Failed to get country for {slug}: {e}")
+    return ''
+
+
+def get_countries_for_matches(matches):
+    """Batch-fetch country codes for all players in matches."""
+    logger.info("Fetching player country codes...")
+
+    slug_to_country = {}
+    unique_slugs = set()
+    for m in matches:
+        unique_slugs.add(m.get('Player_slug', ''))
+        unique_slugs.add(m.get('Opponent_slug', ''))
+    unique_slugs.discard('')
+
+    logger.info(f"Looking up countries for {len(unique_slugs)} unique players")
+
+    for slug in unique_slugs:
+        if slug not in slug_to_country:
+            country = get_player_country(slug)
+            slug_to_country[slug] = country
+
+    # Assign countries back to matches
+    for m in matches:
+        m['Player Country'] = slug_to_country.get(m.get('Player_slug', ''), '')
+        m['Opponent Country'] = slug_to_country.get(m.get('Opponent_slug', ''), '')
+
+    found = sum(1 for v in slug_to_country.values() if v)
+    logger.info(f"Found countries for {found}/{len(unique_slugs)} players")
+    return matches
+
 
 # ============= PROCESSING =============
 
-def process_matches(matches, combined_elos, surface="grass", best_of=3):
-    """Process matches with Elo ratings to calculate win probabilities."""
+def detect_surface(tournament_name):
+    """Guess surface from tournament name."""
+    t = tournament_name.lower()
+    clay_indicators = ['roland garros', 'french open', 'rome', 'madrid', 'barcelona',
+                       'monte carlo', 'hamburg', 'estoril', 'buenos aires', 'rio',
+                       'marrakech', 'lyon', 'kitzbuhel', 'bastad', 'umag', 'gstaad']
+    grass_indicators = ['wimbledon', 'halle', 'queens', "queen's", 's-hertogenbosch',
+                        'eastbourne', 'mallorca', 'stuttgart', 'newport']
+
+    for indicator in clay_indicators:
+        if indicator in t:
+            return 'clay'
+    for indicator in grass_indicators:
+        if indicator in t:
+            return 'grass'
+    return 'hard'
+
+
+def detect_best_of(tournament_name, tour):
+    """Determine if match is best-of-5 (Grand Slam men's)."""
+    slams = ['australian open', 'roland garros', 'french open', 'wimbledon', 'us open']
+    t = tournament_name.lower()
+    if tour == 'ATP' and any(s in t for s in slams):
+        return 5
+    return 3
+
+
+def process_matches(matches, combined_elos):
+    """Match players with Elo ratings and compute win probabilities."""
     logger.info("Processing matches with Elo ratings...")
 
-    matches = fuzzy_match_column(matches, combined_elos, "Player", "Player")
-    matches = fuzzy_match_column(matches, combined_elos, "Opponent", "Player")
+    # Build normalized name lookup
+    elo_names_norm = combined_elos['Player'].apply(normalize_name).tolist()
+    elo_lookup = dict(zip(elo_names_norm, combined_elos.index))
 
-    surface_elo = {"clay": "cElo", "grass": "gElo", "hard": "hElo"}.get(surface, "Elo")
+    results = []
+    for m in matches:
+        player_name = m['Player']
+        opponent_name = m['Opponent']
+        tournament = m.get('tournament', '')
+        tour = m.get('tour', 'ATP')
 
-    matches_with_elos = matches.merge(
-        combined_elos[["Player", "Elo", surface_elo]].rename(columns={
-            "Player": "Player_matched",
-            "Elo": "Player Elo",
-            surface_elo: "Player " + surface_elo
-        }),
-        on="Player_matched",
-        how="left"
-    )
+        surface = detect_surface(tournament)
+        best_of = detect_best_of(tournament, tour)
+        surface_col = {'clay': 'cElo', 'grass': 'gElo', 'hard': 'hElo'}.get(surface, 'Elo')
 
-    matches_with_elos = matches_with_elos.merge(
-        combined_elos[["Player", "Elo", surface_elo]].rename(columns={
-            "Player": "Opponent_matched",
-            "Elo": "Opponent Elo",
-            surface_elo: "Opponent " + surface_elo
-        }),
-        on="Opponent_matched",
-        how="left"
-    )
+        # Fuzzy match player names to Elo database
+        # TennisExplorer format: "Last F." -> we need to match with "First Last"
+        player_match = fuzzy_match_name(player_name, elo_names_norm)
+        opponent_match = fuzzy_match_name(opponent_name, elo_names_norm)
 
-    matches_with_elos = matches_with_elos.drop(columns=["Player_matched", "Opponent_matched"])
+        if player_match is None or opponent_match is None:
+            continue
 
-    cols_to_fill = ["Player Elo", f"Player {surface_elo}", "Opponent Elo", f"Opponent {surface_elo}"]
-    matches_with_elos[cols_to_fill] = matches_with_elos[cols_to_fill].fillna(1000)
+        player_idx = elo_lookup.get(player_match)
+        opponent_idx = elo_lookup.get(opponent_match)
 
-    matches_with_elos["Surface Elo Win Probability"] = matches_with_elos.apply(
-        lambda row: bo3_to_bo5(elo_win_probability(row["Player " + surface_elo], row["Opponent " + surface_elo]))
-        if best_of == 5 and ("atp" in row["event_name"].lower() or "(m)" in row["event_name"].lower())
-        else elo_win_probability(row["Player " + surface_elo], row["Opponent " + surface_elo]),
-        axis=1
-    )
+        if player_idx is None or opponent_idx is None:
+            continue
 
-    # Remove rows with default Elo
-    elo_cols = ["Player Elo", f"Player {surface_elo}", "Opponent Elo", f"Opponent {surface_elo}"]
-    matches_with_elos = matches_with_elos[~matches_with_elos[elo_cols].isin([1000]).any(axis=1)]
+        player_row = combined_elos.iloc[player_idx]
+        opponent_row = combined_elos.iloc[opponent_idx]
 
-    logger.info(f"Processed {len(matches_with_elos)} matches")
-    return matches_with_elos
+        # Get surface-specific Elo (fall back to overall Elo)
+        player_elo = player_row.get(surface_col, player_row.get('Elo', None))
+        opponent_elo = opponent_row.get(surface_col, opponent_row.get('Elo', None))
 
-def generate_website_data(matches_with_elos):
-    """Generate clean dataset for website."""
-    even_rows = np.arange(0, len(matches_with_elos), 2)
-    odd_rows = even_rows + 1
+        if pd.isna(player_elo) or pd.isna(opponent_elo):
+            player_elo = player_row.get('Elo', None)
+            opponent_elo = opponent_row.get('Elo', None)
 
-    df_for_website = pd.DataFrame({
-        "Player 1": matches_with_elos.loc[even_rows, "Player"].values,
-        "Player 2": matches_with_elos.loc[odd_rows, "Player"].values,
-        "Player 1 Win Probability": np.round(matches_with_elos.loc[even_rows, "Surface Elo Win Probability"].values, 3),
-        "Player 2 Win Probability": np.round(matches_with_elos.loc[odd_rows, "Surface Elo Win Probability"].values, 3)
-    })
+        if pd.isna(player_elo) or pd.isna(opponent_elo):
+            continue
 
-    return df_for_website
+        player_elo = float(player_elo)
+        opponent_elo = float(opponent_elo)
+
+        win_prob = float(elo_win_probability(player_elo, opponent_elo))
+
+        # Convert to bo5 for Grand Slam men's
+        if best_of == 5:
+            win_prob = float(bo3_to_bo5(win_prob))
+
+        results.append({
+            'Player 1': player_row['Player'].replace('\xa0', ' '),
+            'Player 2': opponent_row['Player'].replace('\xa0', ' '),
+            'Player 1 Win Probability': round(win_prob, 3),
+            'Player 2 Win Probability': round(1 - win_prob, 3),
+            'Player 1 Country': m.get('Player Country', ''),
+            'Player 2 Country': m.get('Opponent Country', ''),
+            'tournament': tournament,
+            'surface': surface,
+        })
+
+    logger.info(f"Processed {len(results)} matches with valid Elo data")
+    return results
+
 
 # ============= FIREBASE =============
 
-def write_to_firestore(data, collection_path="tennis_odds", document_id="current"):
+def write_to_firestore(matches_list, collection_path="tennis_odds", document_id="current"):
     """Write results to Firestore."""
-    logger.info(f"Writing to Firestore at {collection_path}/{document_id}...")
+    logger.info(f"Writing {len(matches_list)} matches to Firestore...")
 
     db = firestore.Client(project=PROJECT_ID)
 
     firestore_data = {
-        "timestamp": datetime.utcnow(),
-        "matches": data.to_dict('records') if hasattr(data, 'to_dict') else data
+        "timestamp": datetime.now(timezone.utc),
+        "matches": matches_list,
     }
 
     db.collection(collection_path).document(document_id).set(firestore_data)
     logger.info("Successfully wrote to Firestore")
+
 
 # ============= MAIN FUNCTION =============
 
@@ -445,44 +414,36 @@ def run_tennis_odds(request):
     try:
         logger.info("Starting tennis odds pipeline...")
 
-        # Get Kalshi credentials from Secret Manager
-        kalshi_api_key = get_secret("kalshi-api-key")
-        kalshi_private_key = get_secret("kalshi-private-key")
-
-        # Initialize Kalshi client
-        try:
-            kalshi_client = Client(
-                api_key=kalshi_api_key,
-                key=kalshi_private_key
-            )
-            logger.info("Kalshi client authenticated")
-        except Exception as e:
-            logger.error(f"Kalshi authentication failed: {str(e)}")
-            raise Exception("Kalshi authentication failed")
-
-        # Fetch data
+        # 1. Scrape Elo ratings
         combined_elos = scrape_elo_ratings()
-        matches = get_kalshi_matches(kalshi_client)
 
-        if len(matches) == 0:
-            logger.info("No upcoming matches found")
-            write_to_firestore({"matches": [], "message": "No upcoming matches"})
-            return {"status": "success", "message": "No upcoming matches"}
+        # 2. Fetch today's matches from TennisExplorer
+        matches = get_all_matches()
 
-        # Process matches with Elo ratings
-        matches_with_elos = process_matches(matches, combined_elos)
+        if not matches:
+            logger.info("No matches found")
+            write_to_firestore([])
+            return {"status": "success", "message": "No matches found"}
 
-        # Generate website data
-        df_for_website = generate_website_data(matches_with_elos)
+        # 3. Get country codes for players
+        matches = get_countries_for_matches(matches)
 
-        # Write to Firestore
-        write_to_firestore(df_for_website)
+        # 4. Process matches with Elo ratings
+        results = process_matches(matches, combined_elos)
 
-        logger.info("Pipeline completed successfully")
+        if not results:
+            logger.info("No matches with valid Elo data")
+            write_to_firestore([])
+            return {"status": "success", "message": "No matches with valid Elo data"}
+
+        # 5. Write to Firestore
+        write_to_firestore(results)
+
+        logger.info(f"Pipeline completed: {len(results)} matches")
         return {
             "status": "success",
-            "matches": len(df_for_website),
-            "timestamp": datetime.utcnow().isoformat()
+            "matches": len(results),
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
