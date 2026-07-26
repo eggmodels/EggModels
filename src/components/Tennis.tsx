@@ -8,22 +8,44 @@ const Tennis = () => {
   const [latestDateStr, setLatestDateStr] = useState(null);
 
   useEffect(() => {
+    const fetchFromFirestore = async () => {
+      const docRef = doc(db, "tennis_odds", "current");
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+        setLatestDateStr(timestamp.toLocaleDateString("en-CA"));
+        setMatches(data.matches || []);
+      }
+    };
+
+    const fetchLocalData = async () => {
+      const res = await fetch('/tennis_data.json');
+      if (res.ok) {
+        const data = await res.json();
+        const ts = data.timestamp ? new Date(data.timestamp) : new Date();
+        setLatestDateStr(ts.toLocaleDateString("en-CA"));
+        setMatches(data.matches || []);
+      }
+    };
+
     const fetchLatestMatches = async () => {
       try {
-        const docRef = doc(db, "tennis_odds", "current");
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-          setLatestDateStr(timestamp.toLocaleDateString("en-CA"));
-          setMatches(data.matches || []);
-        } else {
-          console.warn("No tennis odds data found in Firestore");
-          setMatches([]);
+        // In development, prefer local data file if available
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            await fetchLocalData();
+            return;
+          } catch (e) {
+            // Fall through to Firestore
+          }
         }
+        await fetchFromFirestore();
       } catch (err) {
-        console.error("❌ Error fetching tennis data:", err);
+        console.error("Error fetching tennis data:", err);
+        // Try local fallback
+        try { await fetchLocalData(); } catch (e) { /* no fallback */ }
       }
     };
 
@@ -35,6 +57,17 @@ const Tennis = () => {
       .split(" ")
       .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join(" ");
+  };
+
+  const renderFlag = (countryCode) => {
+    if (!countryCode) return null;
+    return (
+      <img
+        src={`https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`}
+        alt={countryCode}
+        style={{ width: 24, height: 18, objectFit: 'cover', borderRadius: 2 }}
+      />
+    );
   };
 
   return (
@@ -63,23 +96,28 @@ const Tennis = () => {
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="team-name">{capitalizeFullName(match["Player 1"])}</td>
+                    <td className="team-name">
+                      {renderFlag(match["Player 1 Country"])}
+                      {capitalizeFullName(match["Player 1"])}
+                    </td>
                     <td className="probability">
                       {(Number(match["Player 1 Win Probability"]) * 100).toFixed(1)}%
                     </td>
                   </tr>
                   <tr>
-                    <td className="team-name">{capitalizeFullName(match["Player 2"])}</td>
+                    <td className="team-name">
+                      {renderFlag(match["Player 2 Country"])}
+                      {capitalizeFullName(match["Player 2"])}
+                    </td>
                     <td className="probability">
                       {(Number(match["Player 2 Win Probability"]) * 100).toFixed(1)}%
                     </td>
                   </tr>
-                  {match["match_date"] && (
+                  {match["tournament"] && (
                     <tr>
-                      <td colSpan="2" style={{ textAlign: "center", fontSize: "0.9em", color: "#666" }}>
-                        {new Date(match["match_date"]).toLocaleDateString("en-US", {
-                          month: "short", day: "numeric", year: "numeric"
-                        })}
+                      <td colSpan="2" style={{ textAlign: "center", fontSize: "0.85em", color: "#888", paddingTop: 4 }}>
+                        {match["tournament"]}
+                        {match["surface"] && ` · ${match["surface"]}`}
                       </td>
                     </tr>
                   )}
