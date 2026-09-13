@@ -17,4 +17,4 @@ export interface NflGame {
   id?: string;
 }
 
-export type Season = 2023 | 2024 | 2025;
+export type Season = 2023 | 2024 | 2025 | 2026;
