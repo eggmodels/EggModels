@@ -3,6 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// A match is only renderable if both player names are non-empty strings;
+// a single malformed record from the pipeline must not take down the whole page.
+const sanitizeMatches = (matches) => {
+  if (!Array.isArray(matches)) return [];
+  return matches.filter(
+    (match) =>
+      match &&
+      typeof match["Player 1"] === "string" &&
+      match["Player 1"].trim() !== "" &&
+      typeof match["Player 2"] === "string" &&
+      match["Player 2"].trim() !== ""
+  );
+};
+
 const Tennis = () => {
   const [matches, setMatches] = useState([]);
   const [latestDateStr, setLatestDateStr] = useState(null);
@@ -15,8 +29,8 @@ const Tennis = () => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-        setLatestDateStr(timestamp.toLocaleDateString("en-CA"));
-        setMatches(data.matches || []);
+        setLatestDateStr(isNaN(timestamp.getTime()) ? null : timestamp.toLocaleDateString("en-CA"));
+        setMatches(sanitizeMatches(data.matches));
       }
     };
 
@@ -25,8 +39,8 @@ const Tennis = () => {
       if (res.ok) {
         const data = await res.json();
         const ts = data.timestamp ? new Date(data.timestamp) : new Date();
-        setLatestDateStr(ts.toLocaleDateString("en-CA"));
-        setMatches(data.matches || []);
+        setLatestDateStr(isNaN(ts.getTime()) ? null : ts.toLocaleDateString("en-CA"));
+        setMatches(sanitizeMatches(data.matches));
       }
     };
 
@@ -53,10 +67,16 @@ const Tennis = () => {
   }, []);
 
   const capitalizeFullName = (name) => {
+    if (typeof name !== "string" || name.trim() === "") return "Unknown";
     return name
       .split(" ")
       .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join(" ");
+  };
+
+  const formatProbability = (value) => {
+    const num = Number(value);
+    return isNaN(num) ? "—" : `${(num * 100).toFixed(1)}%`;
   };
 
   const renderFlag = (countryCode) => {
@@ -101,7 +121,7 @@ const Tennis = () => {
                       {capitalizeFullName(match["Player 1"])}
                     </td>
                     <td className="probability">
-                      {(Number(match["Player 1 Win Probability"]) * 100).toFixed(1)}%
+                      {formatProbability(match["Player 1 Win Probability"])}
                     </td>
                   </tr>
                   <tr>
@@ -110,7 +130,7 @@ const Tennis = () => {
                       {capitalizeFullName(match["Player 2"])}
                     </td>
                     <td className="probability">
-                      {(Number(match["Player 2 Win Probability"]) * 100).toFixed(1)}%
+                      {formatProbability(match["Player 2 Win Probability"])}
                     </td>
                   </tr>
                   {match["tournament"] && (
