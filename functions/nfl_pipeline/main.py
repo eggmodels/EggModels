@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from google.cloud import firestore
 
 from scheduleScraper2026 import scheduleScraper2026
-from eloInit2026 import eloInit2026
 from eloUpdater2026 import (
+    eloInit2026,
     update_win_prob_2026,
     update_post_elos,
     transfer_post_to_pre,
