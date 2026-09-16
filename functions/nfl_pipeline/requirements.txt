@@ -1,0 +1,4 @@
+functions-framework>=3.5.0
+requests>=2.31.0
+pandas>=2.1.4
+google-cloud-firestore>=2.14.0
