@@ -1,7 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import {
   DEFAULT_SEASON,
+  LIVE_SEASON,
   isSeason,
   seasonData,
 } from '../data/nflSeasons';
@@ -15,6 +18,7 @@ export interface UseSeasonResult {
 
 export function useSeason(): UseSeasonResult {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [liveGames, setLiveGames] = useState<NflGame[] | null>(null);
 
   const season: Season = useMemo(() => {
     const raw = searchParams.get('season');
@@ -32,7 +36,34 @@ export function useSeason(): UseSeasonResult {
     [searchParams, setSearchParams],
   );
 
-  const games = seasonData[season];
+  useEffect(() => {
+    if (season !== LIVE_SEASON) return;
+
+    let cancelled = false;
+
+    const fetchLiveSeason = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, 'nfl_2026', 'current'));
+        if (!cancelled && docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.matches)) {
+            setLiveGames(data.matches as NflGame[]);
+          }
+        }
+      } catch (err) {
+        // Falls back to the statically bundled season data below.
+        console.error('Error fetching live NFL data:', err);
+      }
+    };
+
+    fetchLiveSeason();
+    return () => {
+      cancelled = true;
+    };
+  }, [season]);
+
+  const games =
+    season === LIVE_SEASON && liveGames ? liveGames : seasonData[season];
 
   return { season, setSeason, games };
 }

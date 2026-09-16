@@ -6,6 +6,11 @@ service cloud.firestore {
       allow read;
     }
 
+    // Allow anyone to read nfl_2026/current
+    match /nfl_2026/{document=**} {
+      allow read;
+    }
+
     // Deny all other access by default
     match /{document=**} {
       allow read, write: if false;

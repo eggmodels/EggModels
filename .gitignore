@@ -27,3 +27,4 @@ eggmodels.code-workspace
 
 # local firebase deploy cache (machine-specific, regenerated on every deploy)
 .firebase/
+__pycache__/
