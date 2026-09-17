@@ -1,10 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import egglogo from '../logosnfl/egg.png';
 import '../css/Navbar.css';
 
 function NavBar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="navbar-container">
@@ -18,6 +32,7 @@ function NavBar() {
 
         <div
           className="dropdown"
+          ref={dropdownRef}
           onMouseEnter={() => setDropdownOpen(true)}
           onMouseLeave={() => setDropdownOpen(false)}
         >
@@ -27,6 +42,7 @@ function NavBar() {
             className={({ isActive }) =>
               `dropdown-toggle${isActive ? ' active' : ''}`
             }
+            onClick={() => setDropdownOpen(!dropdownOpen)}
           >
             NFL
           </NavLink>
@@ -50,6 +66,14 @@ function NavBar() {
 
         <NavLink to="/tennis" className={({ isActive }) => (isActive ? 'active' : '')}>
           Tennis
+        </NavLink>
+
+        <NavLink to="/mlb" className={({ isActive }) => (isActive ? 'active' : '')}>
+          MLB
+        </NavLink>
+
+        <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Markets
         </NavLink>
 
         <NavLink to="/blog" className={({ isActive }) => (isActive ? 'active' : '')}>

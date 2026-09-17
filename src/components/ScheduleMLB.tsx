@@ -4,6 +4,7 @@ import mlbScheduleData from '../python/mlb_2024/csv/mlb-elo-2024.json';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import '../css/ScheduleMLB.css';
+import { formatWinProbability } from '../utils/format';
 
 const ScheduleMLB = ({ activeTab }) => {
     const [scheduleData, setScheduleData] = useState([]);
@@ -28,13 +29,6 @@ const ScheduleMLB = ({ activeTab }) => {
             day: 'numeric',
             month: 'short'
         });
-    };
-
-    const calculateWinProbability = (prob) => {
-        if (prob == null) {
-            return null;
-        }
-        return `${(prob * 100).toFixed(2)}%`;
     };
 
     return (
@@ -75,7 +69,7 @@ const ScheduleMLB = ({ activeTab }) => {
                                             <img className='team-logo' src={require(`../logosmlb/${game.team2}.png`)} alt={`${game.team2} Logo`} />
                                             {game.team2}
                                         </td>
-                                        <td>{calculateWinProbability(game.elo_prob2)}</td>
+                                        <td>{formatWinProbability(game.elo_prob2)}</td>
                                         <td></td>
                                         <td className='score'>{game.score2 ?? ''}</td>
                                     </tr>
@@ -84,7 +78,7 @@ const ScheduleMLB = ({ activeTab }) => {
                                             <img className='team-logo' src={require(`../logosmlb/${game.team1}.png`)} alt={`${game.team1} Logo`} />
                                             {game.team1}
                                         </td>
-                                        <td>{calculateWinProbability(game.elo_prob1)}</td>
+                                        <td>{formatWinProbability(game.elo_prob1)}</td>
                                         <td></td>
                                         <td className='score'>{game.score1 ?? ''}</td>
                                     </tr>

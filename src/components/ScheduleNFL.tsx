@@ -3,20 +3,9 @@ import '../App.css';
 import { useSeason } from '../hooks/useSeason';
 import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
 import { getNflTeamLogo } from '../utils/teamLogo';
+import { formatWinProbability, formatSpread } from '../utils/format';
 import SeasonSelector from './SeasonSelector';
 import type { NflGame } from '../types/nfl';
-
-function calculateWinProbability(prob: number | null): string | null {
-  if (prob == null) return null;
-  return `${(prob * 100).toFixed(2)}%`;
-}
-
-function formatSpread(spread: number | null): string | null {
-  if (spread == null) return null;
-  const rounded = Math.round(Math.abs(spread) * 2) / 2;
-  const sign = spread >= 0 ? '+' : '-';
-  return `${sign}${rounded}`;
-}
 
 function TeamLogoOrFallback({ team }: { team: string }) {
   const logoSrc = getNflTeamLogo(team);
@@ -43,7 +32,7 @@ function TeamLogoOrFallback({ team }: { team: string }) {
 }
 
 function ScheduleNFL() {
-  const { season, setSeason, games, loading } = useSeason();
+  const { season, setSeason, games, loading, stale } = useSeason();
   const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games));
 
   useEffect(() => {
@@ -66,6 +55,11 @@ function ScheduleNFL() {
 
   return (
     <div className="nfl-schedule">
+      {stale && !loading && (
+        <div style={{ background: '#fff3cd', color: '#856404', padding: '6px 12px', fontSize: '0.85em', textAlign: 'center', marginBottom: '12px' }}>
+          Showing last saved data — live update failed.
+        </div>
+      )}
       <div className="week-selector">
         <label>Season&nbsp;</label>
         <SeasonSelector season={season} onSeasonChange={setSeason} />
@@ -106,7 +100,7 @@ function ScheduleNFL() {
                     <TeamLogoOrFallback team={game.Away} />
                     {game.Away}
                   </td>
-                  <td>{calculateWinProbability(game.probA)}</td>
+                  <td>{formatWinProbability(game.probA)}</td>
                   <td></td>
                   <td className="score">{game.ScoreA}</td>
                 </tr>
@@ -115,7 +109,7 @@ function ScheduleNFL() {
                     <TeamLogoOrFallback team={game.Home} />
                     {game.Home}
                   </td>
-                  <td>{calculateWinProbability(game.probH)}</td>
+                  <td>{formatWinProbability(game.probH)}</td>
                   <td>{formatSpread(game.eloSpread)}</td>
                   <td className="score">{game.ScoreH}</td>
                 </tr>
