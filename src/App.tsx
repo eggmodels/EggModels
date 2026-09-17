@@ -7,6 +7,8 @@ import Rankings from './components/Rankings';
 import NavBar from './components/NavBar';
 import Home from './components/Home';
 import Tennis from './components/Tennis';
+import Dashboard from './components/Dashboard';
+import ScheduleMLB from './components/ScheduleMLB';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
           <Route path="/nfl/rankings" element={<Rankings />} />
           <Route path="/tennis" element={<Tennis />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/mlb" element={<ScheduleMLB />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

@@ -1,11 +1,11 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { TennisMatch } from '../types/tennis';
 
 // A match is only renderable if both player names are non-empty strings;
 // a single malformed record from the pipeline must not take down the whole page.
-const sanitizeMatches = (matches) => {
+const sanitizeMatches = (matches: unknown): TennisMatch[] => {
   if (!Array.isArray(matches)) return [];
   return matches.filter(
     (match) =>
@@ -18,8 +18,8 @@ const sanitizeMatches = (matches) => {
 };
 
 const Tennis = () => {
-  const [matches, setMatches] = useState([]);
-  const [latestDateStr, setLatestDateStr] = useState(null);
+  const [matches, setMatches] = useState<TennisMatch[]>([]);
+  const [latestDateStr, setLatestDateStr] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFromFirestore = async () => {
@@ -66,7 +66,7 @@ const Tennis = () => {
     fetchLatestMatches();
   }, []);
 
-  const capitalizeFullName = (name) => {
+  const capitalizeFullName = (name: unknown): string => {
     if (typeof name !== "string" || name.trim() === "") return "Unknown";
     return name
       .split(" ")
@@ -74,12 +74,12 @@ const Tennis = () => {
       .join(" ");
   };
 
-  const formatProbability = (value) => {
+  const formatProbability = (value: unknown): string => {
     const num = Number(value);
     return isNaN(num) ? "—" : `${(num * 100).toFixed(1)}%`;
   };
 
-  const renderFlag = (countryCode) => {
+  const renderFlag = (countryCode: string | undefined): React.ReactNode => {
     if (!countryCode) return null;
     return (
       <img
@@ -135,7 +135,7 @@ const Tennis = () => {
                   </tr>
                   {match["tournament"] && (
                     <tr>
-                      <td colSpan="2" style={{ textAlign: "center", fontSize: "0.85em", color: "#888", paddingTop: 4 }}>
+                      <td colSpan={2} style={{ textAlign: "center", fontSize: "0.85em", color: "#888", paddingTop: 4 }}>
                         {match["tournament"]}
                         {match["surface"] && ` · ${match["surface"]}`}
                       </td>
