@@ -40,7 +40,7 @@ echo ""
 echo "Step 3: Getting Cloud Function URL..."
 FUNCTION_URL=$(gcloud functions describe ${FUNCTION_NAME} \
   --region ${REGION} \
-  --format 'value(httpsTrigger.url)' \
+  --format 'value(url)' \
   --project ${PROJECT_ID})
 
 echo "Function URL: ${FUNCTION_URL}"
