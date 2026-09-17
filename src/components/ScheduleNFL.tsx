@@ -28,8 +28,6 @@ function TeamLogoOrFallback({ team }: { team: string }) {
     <div
       className="team-logo"
       style={{
-        width: 24,
-        height: 24,
         backgroundColor: '#ccc',
         display: 'flex',
         alignItems: 'center',
