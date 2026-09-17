@@ -11,15 +11,19 @@ export function weekLabel(week: number): string {
   return PLAYOFF_LABELS[week] ?? `Week ${Math.round(week)}`;
 }
 
-export function latestPlayedWeek(games: NflGame[]): number {
-  const played = games.filter(
-    (g) => g.ScoreH != null && g.ScoreA != null && Number.isFinite(g.Week),
-  );
-  if (played.length > 0) {
-    return Math.max(...played.map((g) => g.Week));
+// The week to default to: the earliest week that still has an unplayed
+// game, so the view only advances once every game in a week is final
+// (not as soon as a single Thursday-night game finishes).
+export function currentWeek(games: NflGame[]): number {
+  const weeks = uniqueWeeks(games);
+  for (const week of weeks) {
+    const weekGames = games.filter((g) => g.Week === week);
+    const allPlayed = weekGames.every(
+      (g) => g.ScoreH != null && g.ScoreA != null,
+    );
+    if (!allPlayed) return week;
   }
-  const finite = games.filter((g) => Number.isFinite(g.Week));
-  return finite.length > 0 ? Math.max(...finite.map((g) => g.Week)) : 1;
+  return weeks.length > 0 ? weeks[weeks.length - 1] : 1;
 }
 
 export function uniqueWeeks(games: NflGame[]): number[] {

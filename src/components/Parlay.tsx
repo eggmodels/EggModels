@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import '../Parlay.css';
 import { useSeason } from '../hooks/useSeason';
-import { latestPlayedWeek, weekLabel } from '../utils/week';
+import { currentWeek, weekLabel } from '../utils/week';
 import type { NflGame } from '../types/nfl';
 
 interface WinnerSelection {
@@ -42,10 +42,10 @@ function calculateParlayOdds(
 function Parlay() {
   const { season, games } = useSeason();
   const [selectedWinners, setSelectedWinners] = useState<Array<WinnerSelection | null>>([]);
-  const [week, setWeek] = useState<number>(() => latestPlayedWeek(games));
+  const [week, setWeek] = useState<number>(() => currentWeek(games));
 
   useEffect(() => {
-    setWeek(latestPlayedWeek(games));
+    setWeek(currentWeek(games));
     setSelectedWinners([]);
   }, [season, games]);
 

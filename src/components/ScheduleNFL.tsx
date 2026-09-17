@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../App.css';
 import { useSeason } from '../hooks/useSeason';
-import { latestPlayedWeek, uniqueWeeks, weekLabel } from '../utils/week';
+import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
 import SeasonSelector from './SeasonSelector';
 import type { NflGame } from '../types/nfl';
 
@@ -19,10 +19,10 @@ function formatSpread(spread: number | null): string | null {
 
 function ScheduleNFL() {
   const { season, setSeason, games } = useSeason();
-  const [selectedWeek, setSelectedWeek] = useState<number>(() => latestPlayedWeek(games));
+  const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games));
 
   useEffect(() => {
-    setSelectedWeek(latestPlayedWeek(games));
+    setSelectedWeek(currentWeek(games));
   }, [season, games]);
 
   const weeks = uniqueWeeks(games);
