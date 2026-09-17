@@ -2,20 +2,9 @@ import React, { useState, useEffect } from 'react';
 import '../App.css';
 import { useSeason } from '../hooks/useSeason';
 import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
+import { formatWinProbability, formatSpread } from '../utils/format';
 import SeasonSelector from './SeasonSelector';
 import type { NflGame } from '../types/nfl';
-
-function calculateWinProbability(prob: number | null): string | null {
-  if (prob == null) return null;
-  return `${(prob * 100).toFixed(2)}%`;
-}
-
-function formatSpread(spread: number | null): string | null {
-  if (spread == null) return null;
-  const rounded = Math.round(Math.abs(spread) * 2) / 2;
-  const sign = spread >= 0 ? '+' : '-';
-  return `${sign}${rounded}`;
-}
 
 function ScheduleNFL() {
   const { season, setSeason, games, loading } = useSeason();
@@ -85,7 +74,7 @@ function ScheduleNFL() {
                     />
                     {game.Away}
                   </td>
-                  <td>{calculateWinProbability(game.probA)}</td>
+                  <td>{formatWinProbability(game.probA)}</td>
                   <td></td>
                   <td className="score">{game.ScoreA}</td>
                 </tr>
@@ -98,7 +87,7 @@ function ScheduleNFL() {
                     />
                     {game.Home}
                   </td>
-                  <td>{calculateWinProbability(game.probH)}</td>
+                  <td>{formatWinProbability(game.probH)}</td>
                   <td>{formatSpread(game.eloSpread)}</td>
                   <td className="score">{game.ScoreH}</td>
                 </tr>
