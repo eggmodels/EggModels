@@ -2,9 +2,34 @@ import React, { useState, useEffect } from 'react';
 import '../App.css';
 import { useSeason } from '../hooks/useSeason';
 import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
+import { getNflTeamLogo } from '../utils/teamLogo';
 import { formatWinProbability, formatSpread } from '../utils/format';
 import SeasonSelector from './SeasonSelector';
 import type { NflGame } from '../types/nfl';
+
+function TeamLogoOrFallback({ team }: { team: string }) {
+  const logoSrc = getNflTeamLogo(team);
+  if (logoSrc) {
+    return <img className="team-logo" src={logoSrc} alt={`${team} Logo`} />;
+  }
+  const initials = team.substring(0, 2).toUpperCase();
+  return (
+    <div
+      className="team-logo"
+      style={{
+        backgroundColor: '#ccc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '10px',
+        fontWeight: 'bold',
+      }}
+      title={team}
+    >
+      {initials}
+    </div>
+  );
+}
 
 function ScheduleNFL() {
   const { season, setSeason, games, loading, stale } = useSeason();
@@ -72,11 +97,7 @@ function ScheduleNFL() {
               <tbody>
                 <tr>
                   <td className="team-name">
-                    <img
-                      className="team-logo"
-                      src={require(`../logosnfl/${game.Away}.png`)}
-                      alt={`${game.Away} Logo`}
-                    />
+                    <TeamLogoOrFallback team={game.Away} />
                     {game.Away}
                   </td>
                   <td>{formatWinProbability(game.probA)}</td>
@@ -85,11 +106,7 @@ function ScheduleNFL() {
                 </tr>
                 <tr>
                   <td className="team-name">
-                    <img
-                      className="team-logo"
-                      src={require(`../logosnfl/${game.Home}.png`)}
-                      alt={`${game.Home} Logo`}
-                    />
+                    <TeamLogoOrFallback team={game.Home} />
                     {game.Home}
                   </td>
                   <td>{formatWinProbability(game.probH)}</td>
