@@ -68,10 +68,6 @@ function NavBar() {
           Tennis
         </NavLink>
 
-        <NavLink to="/mlb" className={({ isActive }) => (isActive ? 'active' : '')}>
-          MLB
-        </NavLink>
-
         <NavLink to="/blog" className={({ isActive }) => (isActive ? 'active' : '')}>
           Blog
         </NavLink>
