@@ -18,7 +18,7 @@ function formatSpread(spread: number | null): string | null {
 }
 
 function ScheduleNFL() {
-  const { season, setSeason, games } = useSeason();
+  const { season, setSeason, games, loading } = useSeason();
   const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games));
 
   useEffect(() => {
@@ -28,6 +28,16 @@ function ScheduleNFL() {
   const weeks = uniqueWeeks(games);
   const weekGames = games.filter((g: NflGame) => g.Week === selectedWeek);
   const selectedWeekLabel = weekLabel(selectedWeek);
+
+  if (loading) {
+    return (
+      <div className="nfl-schedule">
+        <div className="week-selector">
+          <label>Loading NFL data...</label>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="nfl-schedule">

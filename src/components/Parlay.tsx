@@ -40,7 +40,7 @@ function calculateParlayOdds(
 }
 
 function Parlay() {
-  const { season, games } = useSeason();
+  const { season, games, loading } = useSeason();
   const [selectedWinners, setSelectedWinners] = useState<Array<WinnerSelection | null>>([]);
   const [week, setWeek] = useState<number>(() => currentWeek(games));
 
@@ -58,6 +58,14 @@ function Parlay() {
     () => calculateParlayOdds(selectedWinners, week, games),
     [selectedWinners, week, games],
   );
+
+  if (loading) {
+    return (
+      <div className="parley">
+        <h1>Loading NFL data...</h1>
+      </div>
+    );
+  }
 
   const handleWinnerSelection = (
     gameId: string | undefined,

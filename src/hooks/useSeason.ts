@@ -14,11 +14,13 @@ export interface UseSeasonResult {
   season: Season;
   setSeason: (season: Season) => void;
   games: NflGame[];
+  loading: boolean;
 }
 
 export function useSeason(): UseSeasonResult {
   const [searchParams, setSearchParams] = useSearchParams();
   const [liveGames, setLiveGames] = useState<NflGame[] | null>(null);
+  const [liveFetchDone, setLiveFetchDone] = useState(false);
 
   const season: Season = useMemo(() => {
     const raw = searchParams.get('season');
@@ -53,6 +55,8 @@ export function useSeason(): UseSeasonResult {
       } catch (err) {
         // Falls back to the statically bundled season data below.
         console.error('Error fetching live NFL data:', err);
+      } finally {
+        if (!cancelled) setLiveFetchDone(true);
       }
     };
 
@@ -62,8 +66,9 @@ export function useSeason(): UseSeasonResult {
     };
   }, [season]);
 
+  const loading = season === LIVE_SEASON && !liveFetchDone;
   const games =
     season === LIVE_SEASON && liveGames ? liveGames : seasonData[season];
 
-  return { season, setSeason, games };
+  return { season, setSeason, games, loading };
 }
