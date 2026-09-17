@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import '../App.css';
 
-const Dashboard = ({ activeTab }) => {
+const Dashboard = ({ activeTab }: { activeTab?: unknown } = {}) => {
   const [prophetEvents, setProphetEvents] = useState([]);
   const [kalshiEvents, setKalshiEvents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
