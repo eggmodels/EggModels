@@ -56,7 +56,7 @@ if gcloud scheduler jobs describe ${FUNCTION_NAME}-daily --location ${REGION} --
       --schedule "0 0 * * *" \
       --http-method GET \
       --uri ${FUNCTION_URL} \
-      --tz UTC \
+      --time-zone UTC \
       --project ${PROJECT_ID} \
       --quiet
 else
@@ -66,7 +66,7 @@ else
       --schedule "0 0 * * *" \
       --http-method GET \
       --uri ${FUNCTION_URL} \
-      --tz UTC \
+      --time-zone UTC \
       --project ${PROJECT_ID}
 fi
 
