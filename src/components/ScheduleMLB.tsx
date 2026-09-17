@@ -6,7 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import '../css/ScheduleMLB.css';
 import { formatWinProbability } from '../utils/format';
 
-const ScheduleMLB = ({ activeTab }) => {
+const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
     const [scheduleData, setScheduleData] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [calendarVisible, setCalendarVisible] = useState(false);
