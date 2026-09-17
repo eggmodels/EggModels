@@ -72,10 +72,6 @@ function NavBar() {
           MLB
         </NavLink>
 
-        <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
-          Markets
-        </NavLink>
-
         <NavLink to="/blog" className={({ isActive }) => (isActive ? 'active' : '')}>
           Blog
         </NavLink>

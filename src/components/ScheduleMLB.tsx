@@ -6,9 +6,20 @@ import 'react-datepicker/dist/react-datepicker.css';
 import '../css/ScheduleMLB.css';
 import { formatWinProbability } from '../utils/format';
 
+// The bundled dataset is a fixed historical season (2024), so defaulting the
+// picker to "today" shows an empty page once the real date moves past it.
+// Default to the earliest date in the data instead.
+const getDefaultDate = () => {
+    if (mlbScheduleData.length === 0) return new Date();
+    return mlbScheduleData.reduce(
+        (min, g) => (new Date(g.date) < min ? new Date(g.date) : min),
+        new Date(mlbScheduleData[0].date)
+    );
+};
+
 const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
     const [scheduleData, setScheduleData] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(getDefaultDate);
     const [calendarVisible, setCalendarVisible] = useState(false);
 
     useEffect(() => {
