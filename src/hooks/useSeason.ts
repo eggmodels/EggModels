@@ -58,7 +58,7 @@ export function useSeason(): UseSeasonResult {
       } catch (err) {
         // Falls back to the statically bundled season data below.
         console.error('Error fetching live NFL data:', err);
-        setLiveFetchFailed(true);
+        if (!cancelled) setLiveFetchFailed(true);
       } finally {
         if (!cancelled) setLiveFetchDone(true);
       }
