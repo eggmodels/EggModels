@@ -16,51 +16,55 @@ import {
 } from 'chart.js';
 import { useSeason } from '../hooks/useSeason';
 import { weekLabel } from '../utils/week';
+import { getNflTeamLogo } from '../utils/teamLogo';
 import SeasonSelector from './SeasonSelector';
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Title, Tooltip, Legend);
 
 // Pre-load team logos so the plugin can draw them synchronously
-const logoSources: Record<string, string> = {
-  Cardinals: require('../logosnfl/Cardinals.png'),
-  Falcons: require('../logosnfl/Falcons.png'),
-  Ravens: require('../logosnfl/Ravens.png'),
-  Bills: require('../logosnfl/Bills.png'),
-  Panthers: require('../logosnfl/Panthers.png'),
-  Bears: require('../logosnfl/Bears.png'),
-  Bengals: require('../logosnfl/Bengals.png'),
-  Browns: require('../logosnfl/Browns.png'),
-  Cowboys: require('../logosnfl/Cowboys.png'),
-  Broncos: require('../logosnfl/Broncos.png'),
-  Lions: require('../logosnfl/Lions.png'),
-  Packers: require('../logosnfl/Packers.png'),
-  Texans: require('../logosnfl/Texans.png'),
-  Colts: require('../logosnfl/Colts.png'),
-  Jaguars: require('../logosnfl/Jaguars.png'),
-  Chiefs: require('../logosnfl/Chiefs.png'),
-  Raiders: require('../logosnfl/Raiders.png'),
-  Chargers: require('../logosnfl/Chargers.png'),
-  Rams: require('../logosnfl/Rams.png'),
-  Dolphins: require('../logosnfl/Dolphins.png'),
-  Vikings: require('../logosnfl/Vikings.png'),
-  Patriots: require('../logosnfl/Patriots.png'),
-  Saints: require('../logosnfl/Saints.png'),
-  Giants: require('../logosnfl/Giants.png'),
-  Jets: require('../logosnfl/Jets.png'),
-  Eagles: require('../logosnfl/Eagles.png'),
-  Steelers: require('../logosnfl/Steelers.png'),
-  '49ers': require('../logosnfl/49ers.png'),
-  Seahawks: require('../logosnfl/Seahawks.png'),
-  Buccaneers: require('../logosnfl/Buccaneers.png'),
-  Titans: require('../logosnfl/Titans.png'),
-  Commanders: require('../logosnfl/Commanders.png'),
-};
+const allTeams = [
+  'Cardinals',
+  'Falcons',
+  'Ravens',
+  'Bills',
+  'Panthers',
+  'Bears',
+  'Bengals',
+  'Browns',
+  'Cowboys',
+  'Broncos',
+  'Lions',
+  'Packers',
+  'Texans',
+  'Colts',
+  'Jaguars',
+  'Chiefs',
+  'Raiders',
+  'Chargers',
+  'Rams',
+  'Dolphins',
+  'Vikings',
+  'Patriots',
+  'Saints',
+  'Giants',
+  'Jets',
+  'Eagles',
+  'Steelers',
+  '49ers',
+  'Seahawks',
+  'Buccaneers',
+  'Titans',
+  'Commanders',
+];
 
 const teamLogoImages: Record<string, HTMLImageElement> = {};
-Object.entries(logoSources).forEach(([team, src]) => {
-  const img = new Image();
-  img.src = src;
-  teamLogoImages[team] = img;
+allTeams.forEach((team) => {
+  const src = getNflTeamLogo(team);
+  if (src) {
+    const img = new Image();
+    img.src = src;
+    teamLogoImages[team] = img;
+  }
 });
 
 // Draws each team's logo at the last (most recent) data point on their line

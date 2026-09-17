@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import '../Parlay.css';
 import { useSeason } from '../hooks/useSeason';
 import { currentWeek, weekLabel } from '../utils/week';
+import { getNflTeamLogo } from '../utils/teamLogo';
 import type { NflGame } from '../types/nfl';
 
 interface WinnerSelection {
@@ -37,6 +38,32 @@ function calculateParlayOdds(
   return sign === '-'
     ? String(Math.round(americanOdds))
     : `${sign}${Math.round(americanOdds)}`;
+}
+
+function TeamLogoOrFallback({ team }: { team: string }) {
+  const logoSrc = getNflTeamLogo(team);
+  if (logoSrc) {
+    return <img className="team-logo" src={logoSrc} alt={`${team} Logo`} />;
+  }
+  const initials = team.substring(0, 2).toUpperCase();
+  return (
+    <div
+      className="team-logo"
+      style={{
+        width: 24,
+        height: 24,
+        backgroundColor: '#ccc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '10px',
+        fontWeight: 'bold',
+      }}
+      title={team}
+    >
+      {initials}
+    </div>
+  );
 }
 
 function Parlay() {
@@ -110,20 +137,12 @@ function Parlay() {
                       )
                     }
                   />
-                  <img
-                    className="team-logo"
-                    src={require(`../logosnfl/${game.Away}.png`)}
-                    alt={`${game.Away} Logo`}
-                  />
+                  <TeamLogoOrFallback team={game.Away} />
                   {game.Away}
                 </td>
                 <td className="separator">@</td>
                 <td className="right-column">
-                  <img
-                    className="team-logo"
-                    src={require(`../logosnfl/${game.Home}.png`)}
-                    alt={`${game.Home} Logo`}
-                  />
+                  <TeamLogoOrFallback team={game.Home} />
                   {game.Home}
                   <input
                     type="checkbox"
