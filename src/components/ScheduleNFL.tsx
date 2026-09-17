@@ -18,7 +18,7 @@ function formatSpread(spread: number | null): string | null {
 }
 
 function ScheduleNFL() {
-  const { season, setSeason, games, loading } = useSeason();
+  const { season, setSeason, games, loading, stale } = useSeason();
   const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games));
 
   useEffect(() => {
@@ -41,6 +41,11 @@ function ScheduleNFL() {
 
   return (
     <div className="nfl-schedule">
+      {stale && !loading && (
+        <div style={{ background: '#fff3cd', color: '#856404', padding: '6px 12px', fontSize: '0.85em', textAlign: 'center', marginBottom: '12px' }}>
+          Showing last saved data — live update failed.
+        </div>
+      )}
       <div className="week-selector">
         <label>Season&nbsp;</label>
         <SeasonSelector season={season} onSeasonChange={setSeason} />
