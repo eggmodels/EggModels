@@ -1,26 +1,29 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react';
-import mlbScheduleData from '../python/mlb_2024/csv/mlb-elo-2024.json';
+import React, { useEffect, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import '../css/ScheduleMLB.css';
 import { formatWinProbability } from '../utils/format';
+import { useMlbSchedule } from '../hooks/useMlbSchedule';
 
-// The bundled dataset is a fixed historical season (2024), so defaulting the
-// picker to "today" shows an empty page once the real date moves past it.
-// Default to the earliest date in the data instead.
-const getDefaultDate = () => {
-    if (mlbScheduleData.length === 0) return new Date();
-    return mlbScheduleData.reduce(
+// The bundled fallback dataset is a fixed historical season (2024), so
+// defaulting the picker to "today" would show an empty page whenever live
+// data isn't available. Default to the earliest date in whatever data is
+// actually loaded instead.
+const getDefaultDate = (games) => {
+    if (games.length === 0) return new Date();
+    return games.reduce(
         (min, g) => (new Date(g.date) < min ? new Date(g.date) : min),
-        new Date(mlbScheduleData[0].date)
+        new Date(games[0].date)
     );
 };
 
 const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
+    const { games: mlbScheduleData, loading, stale } = useMlbSchedule();
     const [scheduleData, setScheduleData] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(getDefaultDate);
+    const [selectedDate, setSelectedDate] = useState(() => getDefaultDate(mlbScheduleData));
     const [calendarVisible, setCalendarVisible] = useState(false);
+    const defaultDateForCurrentData = useMemo(() => getDefaultDate(mlbScheduleData), [mlbScheduleData]);
 
     useEffect(() => {
         const dataWithParsedDates = mlbScheduleData.map(game => ({
@@ -28,22 +31,21 @@ const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
             parsedDate: new Date(game.date)
         }));
         setScheduleData(dataWithParsedDates);
-    }, [activeTab]);
+        setSelectedDate(defaultDateForCurrentData);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, mlbScheduleData]);
 
     const handleCalendarVisibility = () => {
         setCalendarVisible(!calendarVisible);
     };
 
-    const formatDate = (date) => {
-        return date.toLocaleDateString('default', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short'
-        });
-    };
-
     return (
         <div className="mlb-schedule">
+            {stale && !loading && (
+                <div style={{ background: '#fff3cd', color: '#856404', padding: '6px 12px', fontSize: '0.85em', textAlign: 'center', marginBottom: '12px' }}>
+                    Live 2026 data isn't available yet — showing the 2024 season.
+                </div>
+            )}
             <div className="week-selector">
                 <button onClick={handleCalendarVisibility}>
                     Calendar
