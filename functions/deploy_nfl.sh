@@ -46,27 +46,29 @@ FUNCTION_URL=$(gcloud functions describe ${FUNCTION_NAME} \
 echo "Function URL: ${FUNCTION_URL}"
 echo ""
 
-# Step 4: Create Cloud Scheduler job (runs daily at midnight UTC)
+# Step 4: Create Cloud Scheduler job (runs daily at 2 AM Eastern, well after
+# Monday/Thursday/Sunday night games have finished, so the pipeline always
+# picks up the previous day's final scores the same morning)
 echo "Step 4: Setting up Cloud Scheduler..."
 
 if gcloud scheduler jobs describe ${FUNCTION_NAME}-daily --location ${REGION} --project=${PROJECT_ID} &>/dev/null; then
     echo "  - Job exists, updating schedule..."
     gcloud scheduler jobs update http ${FUNCTION_NAME}-daily \
       --location ${REGION} \
-      --schedule "0 0 * * *" \
+      --schedule "0 2 * * *" \
       --http-method GET \
       --uri ${FUNCTION_URL} \
-      --time-zone UTC \
+      --time-zone "America/New_York" \
       --project ${PROJECT_ID} \
       --quiet
 else
     echo "  - Creating new scheduler job..."
     gcloud scheduler jobs create http ${FUNCTION_NAME}-daily \
       --location ${REGION} \
-      --schedule "0 0 * * *" \
+      --schedule "0 2 * * *" \
       --http-method GET \
       --uri ${FUNCTION_URL} \
-      --time-zone UTC \
+      --time-zone "America/New_York" \
       --project ${PROJECT_ID}
 fi
 
@@ -87,7 +89,7 @@ echo "Deployment Complete!"
 echo "=========================================="
 echo ""
 echo "✓ Cloud Function deployed"
-echo "✓ Cloud Scheduler configured (runs daily at midnight UTC)"
+echo "✓ Cloud Scheduler configured (runs daily at 2 AM Eastern)"
 echo "✓ Pipeline tested"
 echo ""
 echo "Next steps:"
