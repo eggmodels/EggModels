@@ -191,6 +191,52 @@ describe('currentWeek', () => {
     });
   });
 
+  describe('stale, entirely-unscored data (bundled fallback snapshot)', () => {
+    const createDatedGame = (week: number, date: string): NflGame => ({
+      ...createGame(week, null, null),
+      Date: date,
+    });
+
+    it('falls back to game dates instead of defaulting to week 1, when nothing has a score', () => {
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      const iso = (offsetDays: number) => new Date(now + offsetDays * day).toISOString();
+
+      const games: NflGame[] = [
+        createDatedGame(1, iso(-60)), // long past
+        createDatedGame(2, iso(-53)),
+        // Week 9: Thursday game already happened, Sunday game hasn't yet —
+        // the week counts as "current" as long as its last game is ahead.
+        createDatedGame(9, iso(-3)),
+        createDatedGame(9, iso(1)),
+        createDatedGame(10, iso(8)), // upcoming
+      ];
+
+      // Nothing has a ScoreH/ScoreA at all (the stale-bundle case), so the
+      // by-score logic alone would always say week 1 regardless of how far
+      // the season has actually progressed.
+      expect(currentWeek(games)).toBe(9);
+    });
+
+    it('still returns the last week once every date has passed', () => {
+      const games: NflGame[] = [
+        createDatedGame(1, '2020-01-01'),
+        createDatedGame(2, '2020-01-08'),
+      ];
+
+      expect(currentWeek(games)).toBe(2);
+    });
+
+    it('prefers real score data over dates once any score is present', () => {
+      const games: NflGame[] = [
+        { ...createGame(1, 20, 17), Date: '2099-01-01' }, // played, but dated far in the future
+        createDatedGame(2, '2000-01-01'), // unplayed, dated in the past
+      ];
+
+      expect(currentWeek(games)).toBe(2);
+    });
+  });
+
   describe('playoff weeks', () => {
     it('returns correct week in playoff scheduling', () => {
       const games: NflGame[] = [
