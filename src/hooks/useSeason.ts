@@ -8,6 +8,7 @@ import {
   isSeason,
   seasonData,
 } from '../data/nflSeasons';
+import { isSeasonStale, selectSeasonGames } from '../utils/liveSeason';
 import type { NflGame, Season } from '../types/nfl';
 
 export interface UseSeasonResult {
@@ -21,7 +22,6 @@ export interface UseSeasonResult {
 export function useSeason(): UseSeasonResult {
   const [searchParams, setSearchParams] = useSearchParams();
   const [liveGames, setLiveGames] = useState<NflGame[] | null>(null);
-  const [liveFetchDone, setLiveFetchDone] = useState(false);
   const [liveFetchFailed, setLiveFetchFailed] = useState(false);
 
   const season: Season = useMemo(() => {
@@ -59,8 +59,6 @@ export function useSeason(): UseSeasonResult {
         // Falls back to the statically bundled season data below.
         console.error('Error fetching live NFL data:', err);
         if (!cancelled) setLiveFetchFailed(true);
-      } finally {
-        if (!cancelled) setLiveFetchDone(true);
       }
     };
 
@@ -70,10 +68,13 @@ export function useSeason(): UseSeasonResult {
     };
   }, [season]);
 
-  const loading = season === LIVE_SEASON && !liveFetchDone;
-  const games =
-    season === LIVE_SEASON && liveGames ? liveGames : seasonData[season];
-  const stale = season === LIVE_SEASON && liveFetchFailed;
+  // The bundled season JSON (committed at build time) covers the live season
+  // too, so it renders immediately; the Firestore read above only refreshes
+  // it in the background instead of blocking the page on a network round trip.
+  const loading = false;
+  const isLiveSeason = season === LIVE_SEASON;
+  const games = selectSeasonGames(isLiveSeason, liveGames, seasonData[season]);
+  const stale = isSeasonStale(isLiveSeason, liveFetchFailed, liveGames);
 
   return { season, setSeason, games, loading, stale };
 }
