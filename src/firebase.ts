@@ -14,5 +14,16 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const analytics: Analytics = getAnalytics(app);
+
+// Analytics requires a valid measurementId/apiKey and throws synchronously if the
+// REACT_APP_FIREBASE_* env vars are missing (e.g. a build run without .env.local).
+// That throw happens at module-import time, before React ever renders, so it must
+// not propagate or the whole site is a blank screen with no error boundary to catch it.
+let analyticsInstance: Analytics | undefined;
+try {
+  analyticsInstance = getAnalytics(app);
+} catch (err) {
+  console.error('Firebase Analytics failed to initialize; continuing without it.', err);
+}
+export const analytics: Analytics | undefined = analyticsInstance;
 export const db: Firestore = getFirestore(app);
