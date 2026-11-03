@@ -101,6 +101,12 @@ exports.getProphetMarkets = functions.https.onRequest((req, res) => {
 
 exports.getBets = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
+    const expectedSecret = functions.config().app && functions.config().app.secret_key;
+    const providedSecret = req.get('x-app-secret');
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
       await ensureLoggedIn();
 
