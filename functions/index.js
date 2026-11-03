@@ -5,6 +5,32 @@ const crypto = require('crypto');
 const axios = require("axios");
 const { createPrivateKey } = require("crypto");
 
+// ─── TypeSafe Setup ──────────────────────────────────────────────────────────
+// TypeSafe (api.typesafe.ai) is a structured-decision model: it answers named
+// yes/no, multiple-choice, or rubric-score questions about supplied content.
+// It does not generate free-form text, so any blurb text below is templated
+// here from its structured answer, not written by the model itself.
+const TYPESAFE_BASE_URL = "https://api.typesafe.ai";
+
+async function callTypeSafeSystemOne(state, questions) {
+  const apiKey = functions.config().typesafe?.api_key;
+  const response = await fetch(`${TYPESAFE_BASE_URL}/v1/systemone`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model: 'jev-latest', state, questions }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`TypeSafe request failed (${response.status}): ${text}`);
+  }
+
+  return response.json();
+}
+
 // ─── ProphetX Setup ──────────────────────────────────────────────────────────
 let accessToken = null;
 
@@ -246,6 +272,131 @@ exports.getKalshiMarketsByEvent = functions.https.onRequest((req, res) => {
       res.json(json);
     } catch (err) {
       console.error("Kalshi markets fetch error:", err);
+      res.status(500).json({ error: "Server error", message: err.message });
+    }
+  });
+});
+
+// ─── TypeSafe-backed Endpoints ───────────────────────────────────────────────
+
+const CONFIDENCE_LEVELS = [
+  "Even matchup — could go either way",
+  "Slight favorite",
+  "Clear favorite",
+  "Lock-level favorite",
+];
+
+function buildPickBlurb(game, tierIndex) {
+  const { home, away, probH, probA, eloSpread } = game;
+  const homeFavored = (probH ?? 0) >= (probA ?? 0);
+  const favorite = homeFavored ? home : away;
+  const underdog = homeFavored ? away : home;
+  const favoriteProb = homeFavored ? probH : probA;
+  const probText = favoriteProb != null ? `${Math.round(favoriteProb * 100)}%` : null;
+  const spreadText = eloSpread != null ? Math.abs(eloSpread).toFixed(1) : null;
+
+  if (tierIndex === 0) {
+    return probText
+      ? `Coin-flip game: ${home} and ${away} are evenly matched (${probText} win probability).`
+      : `Coin-flip game: ${home} and ${away} are evenly matched.`;
+  }
+  const descriptors = ["a modest", "a clear", "a lock-level"];
+  const descriptor = descriptors[Math.min(tierIndex, descriptors.length) - 1];
+  let blurb = `${favorite} is ${descriptor} favorite over ${underdog}`;
+  if (spreadText) blurb += ` (favored by ${spreadText})`;
+  if (probText) blurb += `, ${probText} win probability`;
+  return `${blurb}.`;
+}
+
+// Rates every game in a week in one TypeSafe call, then templates a one-line
+// blurb per game from the structured confidence tier it returns.
+exports.getPickInsights = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const games = req.body?.games;
+      if (!Array.isArray(games) || games.length === 0) {
+        return res.status(400).json({ error: "Missing games array in request body." });
+      }
+
+      const questions = {};
+      games.forEach((game, i) => {
+        questions[`game_${i}`] = {
+          type: "score",
+          instructions: {
+            task: "Rate how lopsided this matchup is based on the model's own numbers.",
+            home: game.home,
+            away: game.away,
+            home_win_probability: game.probH,
+            away_win_probability: game.probA,
+            elo_spread: game.eloSpread,
+          },
+          criteria: CONFIDENCE_LEVELS,
+        };
+      });
+
+      const result = await callTypeSafeSystemOne(
+        "An NFL schedule week. Each question below refers to a different game; rate that game only.",
+        questions,
+      );
+
+      const insights = games.map((game, i) => {
+        const answer = result.answers[`game_${i}`];
+        const tierIndex = answer ? Math.round(answer.score) : 0;
+        return {
+          home: game.home,
+          away: game.away,
+          tier: CONFIDENCE_LEVELS[tierIndex] ?? CONFIDENCE_LEVELS[0],
+          confidence: answer?.confidence ?? null,
+          blurb: buildPickBlurb(game, tierIndex),
+        };
+      });
+
+      res.json({ insights });
+    } catch (err) {
+      console.error("getPickInsights error:", err);
+      res.status(500).json({ error: "Server error", message: err.message });
+    }
+  });
+});
+
+// Matches a free-text search against a list of betting events (ProphetX +
+// Kalshi titles) by meaning rather than exact substring, so phrasing like
+// "the Bills game" can find "Buffalo Bills @ Miami Dolphins".
+exports.searchOdds = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const query = req.body?.query;
+      const events = req.body?.events; // [{ id, title }]
+      if (typeof query !== 'string' || !query.trim()) {
+        return res.status(400).json({ error: "Missing query string in request body." });
+      }
+      if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ error: "Missing events array in request body." });
+      }
+
+      const criteria = {};
+      events.slice(0, 255).forEach((event) => {
+        criteria[String(event.id)] = event.title;
+      });
+
+      const result = await callTypeSafeSystemOne(query, {
+        match: {
+          type: "choice",
+          instructions: "Which event is the user asking about?",
+          criteria,
+        },
+      });
+
+      const answer = result.answers.match;
+      res.json({
+        matchedId: answer.choice,
+        confidence: answer.confidence,
+        ranked: Object.entries(answer.probabilities)
+          .sort((a, b) => b[1] - a[1])
+          .map(([id, probability]) => ({ id, probability })),
+      });
+    } catch (err) {
+      console.error("searchOdds error:", err);
       res.status(500).json({ error: "Server error", message: err.message });
     }
   });

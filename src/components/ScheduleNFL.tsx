@@ -7,6 +7,58 @@ import { formatWinProbability, formatSpread } from '../utils/format';
 import SeasonSelector from './SeasonSelector';
 import type { NflGame } from '../types/nfl';
 
+interface PickInsight {
+  home: string;
+  away: string;
+  tier: string;
+  blurb: string;
+}
+
+function usePickInsights(weekGames: NflGame[]): Record<string, PickInsight> {
+  const [insights, setInsights] = useState<Record<string, PickInsight>>({});
+
+  useEffect(() => {
+    if (weekGames.length === 0) {
+      setInsights({});
+      return;
+    }
+
+    let cancelled = false;
+    const games = weekGames.map((g) => ({
+      home: g.Home,
+      away: g.Away,
+      probH: g.probH,
+      probA: g.probA,
+      eloSpread: g.eloSpread,
+    }));
+
+    fetch('https://us-central1-egg-models.cloudfunctions.net/getPickInsights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ games }),
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('insights fetch failed'))))
+      .then((data) => {
+        if (cancelled) return;
+        const byKey: Record<string, PickInsight> = {};
+        (data.insights || []).forEach((insight: PickInsight) => {
+          byKey[`${insight.away}@${insight.home}`] = insight;
+        });
+        setInsights(byKey);
+      })
+      .catch(() => {
+        // Non-essential enhancement — the schedule still renders without it.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(weekGames.map((g) => g.id))]);
+
+  return insights;
+}
+
 function TeamLogoOrFallback({ team }: { team: string }) {
   const logoSrc = getNflTeamLogo(team);
   if (logoSrc) {
@@ -42,6 +94,7 @@ function ScheduleNFL() {
   const weeks = uniqueWeeks(games);
   const weekGames = games.filter((g: NflGame) => g.Week === selectedWeek);
   const selectedWeekLabel = weekLabel(selectedWeek);
+  const pickInsights = usePickInsights(weekGames);
 
   if (loading) {
     return (
@@ -115,6 +168,11 @@ function ScheduleNFL() {
                 </tr>
               </tbody>
             </table>
+            {pickInsights[`${game.Away}@${game.Home}`] && (
+              <p className="pick-insight" style={{ fontSize: '0.85em', color: '#555', margin: '6px 0 0' }}>
+                {pickInsights[`${game.Away}@${game.Home}`].blurb}
+              </p>
+            )}
           </div>
         ))}
       </div>

@@ -19,6 +19,11 @@ const Dashboard = ({ activeTab }: { activeTab?: unknown } = {}) => {
   const [kalshiEventMarkets, setKalshiEventMarkets] = useState([]);
   const [kalshiEventMarketError, setKalshiEventMarketError] = useState(null);
 
+  const [nlQuery, setNlQuery] = useState('');
+  const [nlMatch, setNlMatch] = useState(null);
+  const [nlError, setNlError] = useState(null);
+  const [nlLoading, setNlLoading] = useState(false);
+
   useEffect(() => {
     const fetchProphetEvents = async () => {
       try {
@@ -71,6 +76,39 @@ const Dashboard = ({ activeTab }: { activeTab?: unknown } = {}) => {
       setEventMarkets(data.data?.markets || []);
     } catch (err) {
       setEventMarketError('Failed to load markets for this event ID.');
+    }
+  };
+
+  const handleNlSearch = async () => {
+    setNlError(null);
+    setNlMatch(null);
+    if (!nlQuery.trim()) return;
+
+    const events = [
+      ...prophetEvents.map((e) => ({ id: `prophetx:${e.event_id}`, title: e.name || 'Unnamed Match' })),
+      ...kalshiEvents.map((e) => ({ id: `kalshi:${e.event_ticker || e.ticker}`, title: e.title })),
+    ].filter((e) => e.title);
+
+    if (events.length === 0) {
+      setNlError('No events loaded yet to search against.');
+      return;
+    }
+
+    try {
+      setNlLoading(true);
+      const res = await fetch('https://us-central1-egg-models.cloudfunctions.net/searchOdds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: nlQuery, events }),
+      });
+      if (!res.ok) throw new Error('Search failed');
+      const data = await res.json();
+      const matched = events.find((e) => e.id === data.matchedId);
+      setNlMatch(matched ? { ...matched, confidence: data.confidence } : null);
+    } catch (err) {
+      setNlError('Failed to search events.');
+    } finally {
+      setNlLoading(false);
     }
   };
 
@@ -158,6 +196,26 @@ const Dashboard = ({ activeTab }: { activeTab?: unknown } = {}) => {
             </div>
           )}
         </div>
+      </div>
+      <div style={{ marginBottom: '12px' }}>
+        <input
+          type="text"
+          placeholder="Ask about an event, e.g. 'the Bills game'"
+          value={nlQuery}
+          onChange={(e) => setNlQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleNlSearch(); }}
+          style={{ padding: '8px', width: '70%', marginRight: '8px' }}
+        />
+        <button onClick={handleNlSearch} disabled={nlLoading}>
+          {nlLoading ? 'Searching…' : 'Ask'}
+        </button>
+        {nlError && <p style={{ color: 'red' }}>{nlError}</p>}
+        {nlMatch && (
+          <p>
+            Best match: <strong>{nlMatch.title}</strong>
+            {nlMatch.confidence != null && ` (${Math.round(nlMatch.confidence * 100)}% confidence)`}
+          </p>
+        )}
       </div>
       <input
         type="text"
