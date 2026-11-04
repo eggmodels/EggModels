@@ -9,9 +9,9 @@ import {
   seasonData,
 } from '../data/nflSeasons';
 import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames, withTimeout } from '../utils/liveSeason';
+import type { NflGame, Season } from '../types/nfl';
 
 const LIVE_FETCH_TIMEOUT_MS = 10000;
-import type { NflGame, Season } from '../types/nfl';
 
 export interface UseSeasonResult {
   season: Season;
