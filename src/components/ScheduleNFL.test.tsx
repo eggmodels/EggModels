@@ -86,10 +86,12 @@ it('does not show the stale-data banner when the live data is current', () => {
   expect(screen.queryByText(/Showing last saved data/i)).not.toBeInTheDocument();
 });
 
-it('defaults near the current week, not week 1, for a stale bundled fallback with no scores at all', () => {
-  // Mirrors the committed nflModel2026.json snapshot: every game unplayed
-  // (scores never backfilled), so currentWeek() has to lean on game dates
-  // instead of defaulting to week 1 regardless of how far the season is.
+it('defaults near the current week, not week 1, for the bundled fallback (trustScores: false)', () => {
+  // Mirrors the committed nflModel2026.json snapshot: scores can't be
+  // trusted to reflect real progress (it even has a couple of stray
+  // scored games despite the rest of the season being stale), so
+  // ScheduleNFL must pass trustScores: false whenever useSeason reports
+  // it's showing the bundled fallback, not live data.
   const day = 24 * 60 * 60 * 1000;
   const daysAgo = (n: number) => new Date(Date.now() - n * day).toISOString();
   const daysAhead = (n: number) => new Date(Date.now() + n * day).toISOString();
@@ -98,13 +100,14 @@ it('defaults near the current week, not week 1, for a stale bundled fallback wit
     season: 2026,
     setSeason: jest.fn(),
     games: [
-      game({ Week: 1, Date: daysAgo(60), id: '1_SF_KC' }),
+      game({ Week: 1, Date: daysAgo(60), ScoreH: 13, ScoreA: 10, id: '1_SF_KC' }),
       game({ Week: 2, Date: daysAgo(53), id: '2_SF_KC' }),
       game({ Week: 9, Date: daysAhead(1), id: '9_SF_KC' }),
       game({ Week: 10, Date: daysAhead(8), id: '10_SF_KC' }),
     ],
     loading: false,
     stale: false,
+    trustScores: false,
   });
 
   const { container } = render(<ScheduleNFL />);

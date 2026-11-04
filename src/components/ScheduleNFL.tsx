@@ -84,12 +84,12 @@ function TeamLogoOrFallback({ team }: { team: string }) {
 }
 
 function ScheduleNFL() {
-  const { season, setSeason, games, loading, stale } = useSeason();
-  const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games));
+  const { season, setSeason, games, loading, stale, trustScores } = useSeason();
+  const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games, trustScores));
 
   useEffect(() => {
-    setSelectedWeek(currentWeek(games));
-  }, [season, games]);
+    setSelectedWeek(currentWeek(games, trustScores));
+  }, [season, games, trustScores]);
 
   const weeks = uniqueWeeks(games);
   const weekGames = games.filter((g: NflGame) => g.Week === selectedWeek);
