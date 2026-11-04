@@ -17,6 +17,10 @@ export interface UseSeasonResult {
   games: NflGame[];
   loading: boolean;
   stale: boolean;
+  // False only when showing the bundled fallback for the live season —
+  // that JSON isn't kept in sync with the real season (see week.ts) — so
+  // consumers like currentWeek() know not to trust its ScoreH/ScoreA.
+  trustScores: boolean;
 }
 
 export function useSeason(): UseSeasonResult {
@@ -78,6 +82,7 @@ export function useSeason(): UseSeasonResult {
   const isLiveSeason = season === LIVE_SEASON;
   const games = selectSeasonGames(isLiveSeason, liveGames, seasonData[season]);
   const stale = isSeasonStale(isLiveSeason, liveFetchFailed, liveGames);
+  const trustScores = !isLiveSeason || liveGames != null;
 
-  return { season, setSeason, games, loading, stale };
+  return { season, setSeason, games, loading, stale, trustScores };
 }
