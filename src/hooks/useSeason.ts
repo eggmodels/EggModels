@@ -8,7 +8,9 @@ import {
   isSeason,
   seasonData,
 } from '../data/nflSeasons';
-import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames } from '../utils/liveSeason';
+import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames, withTimeout } from '../utils/liveSeason';
+
+const LIVE_FETCH_TIMEOUT_MS = 10000;
 import type { NflGame, Season } from '../types/nfl';
 
 export interface UseSeasonResult {
@@ -52,7 +54,7 @@ export function useSeason(): UseSeasonResult {
 
     const fetchLiveSeason = async () => {
       try {
-        const docSnap = await getDoc(doc(db, 'nfl_2026', 'current'));
+        const docSnap = await withTimeout(getDoc(doc(db, 'nfl_2026', 'current')), LIVE_FETCH_TIMEOUT_MS);
         if (cancelled) return;
 
         const matches = parseLiveSeasonDoc(docSnap.exists(), docSnap.exists() ? docSnap.data() : undefined);

@@ -20,6 +20,32 @@ export function isSeasonStale(
   return isLiveSeason && liveFetchFailed && !liveGames;
 }
 
+// A distinct, catchable rejection reason so callers can tell "the fetch
+// itself failed" apart from "the fetch never finished in time" if they
+// need to, without this module depending on any particular Error subclass.
+export const FETCH_TIMEOUT = Symbol('FETCH_TIMEOUT');
+
+// Races a promise against a timeout, rejecting with FETCH_TIMEOUT if the
+// promise hasn't settled in time. Used to stop a hung Firestore read
+// (e.g. a blocked long-polling connection, which doesn't always reject on
+// its own) from leaving the page silently showing stale data forever with
+// no "Showing last saved data" banner to explain why.
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(FETCH_TIMEOUT), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 // Pulls the games array out of the live Firestore doc, or null if the doc
 // is missing or doesn't have the shape we expect (e.g. the daily pipeline
 // hasn't run yet, or wrote something unexpected). A null here isn't a
