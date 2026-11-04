@@ -8,7 +8,7 @@ import {
   isSeason,
   seasonData,
 } from '../data/nflSeasons';
-import { isSeasonStale, selectSeasonGames } from '../utils/liveSeason';
+import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames } from '../utils/liveSeason';
 import type { NflGame, Season } from '../types/nfl';
 
 export interface UseSeasonResult {
@@ -49,11 +49,14 @@ export function useSeason(): UseSeasonResult {
     const fetchLiveSeason = async () => {
       try {
         const docSnap = await getDoc(doc(db, 'nfl_2026', 'current'));
-        if (!cancelled && docSnap.exists()) {
-          const data = docSnap.data();
-          if (Array.isArray(data.matches)) {
-            setLiveGames(data.matches as NflGame[]);
-          }
+        if (cancelled) return;
+
+        const matches = parseLiveSeasonDoc(docSnap.exists(), docSnap.exists() ? docSnap.data() : undefined);
+        if (matches) {
+          setLiveGames(matches);
+        } else {
+          console.error('Live NFL data doc missing or malformed:', docSnap.exists() ? docSnap.data() : 'not found');
+          setLiveFetchFailed(true);
         }
       } catch (err) {
         // Falls back to the statically bundled season data below.

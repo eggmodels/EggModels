@@ -19,3 +19,17 @@ export function isSeasonStale(
 ): boolean {
   return isLiveSeason && liveFetchFailed && !liveGames;
 }
+
+// Pulls the games array out of the live Firestore doc, or null if the doc
+// is missing or doesn't have the shape we expect (e.g. the daily pipeline
+// hasn't run yet, or wrote something unexpected). A null here isn't a
+// thrown error, but it's just as much a reason to fall back to the
+// bundled data and flag it as stale — not silently show the fallback with
+// no indication anything's off.
+export function parseLiveSeasonDoc(
+  exists: boolean,
+  data: Record<string, unknown> | undefined,
+): NflGame[] | null {
+  const matches = exists ? data?.matches : undefined;
+  return Array.isArray(matches) ? (matches as NflGame[]) : null;
+}
