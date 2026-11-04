@@ -33,7 +33,9 @@ const Secret = () => {
     const runProcess = async () => {
       try {
         setStatusMessage("Fetching wagers...");
-        const res = await fetch('https://us-central1-egg-models.cloudfunctions.net/getBets');
+        const res = await fetch('https://us-central1-egg-models.cloudfunctions.net/getBets', {
+          headers: { 'x-app-secret': process.env.REACT_APP_BETS_SECRET || '' }
+        });
         if (!res.ok) throw new Error("Server returned error");
         const data = await res.json();
         const wagers = data.data?.wagers || [];
