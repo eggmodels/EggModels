@@ -1,4 +1,4 @@
-import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames } from './liveSeason';
+import { FETCH_TIMEOUT, isSeasonStale, parseLiveSeasonDoc, selectSeasonGames, withTimeout } from './liveSeason';
 import type { NflGame } from '../types/nfl';
 
 const fallback: NflGame[] = [
@@ -55,5 +55,35 @@ describe('parseLiveSeasonDoc', () => {
 
   it('returns null when matches is not an array (e.g. malformed write)', () => {
     expect(parseLiveSeasonDoc(true, { matches: 'not-an-array' })).toBeNull();
+  });
+});
+
+describe('withTimeout', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('resolves with the promise value when it settles before the timeout', async () => {
+    const result = withTimeout(Promise.resolve('ok'), 1000);
+    await expect(result).resolves.toBe('ok');
+  });
+
+  it('rejects with the original error when the promise rejects before the timeout', async () => {
+    const result = withTimeout(Promise.reject(new Error('boom')), 1000);
+    await expect(result).rejects.toThrow('boom');
+  });
+
+  it('rejects with FETCH_TIMEOUT when the promise never settles in time', async () => {
+    // A promise that never resolves, e.g. a hung Firestore long-poll
+    // connection that doesn't throw a catchable error on its own.
+    const neverSettles = new Promise(() => {});
+    const result = withTimeout(neverSettles, 1000);
+    const assertion = expect(result).rejects.toBe(FETCH_TIMEOUT);
+    jest.advanceTimersByTime(1000);
+    await assertion;
   });
 });
