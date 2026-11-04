@@ -6,6 +6,31 @@ on:
   pull_request:
 
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # Fails the build on new critical-severity advisories in direct or
+      # transitive deps. Pinned at "critical" (not "high") because several
+      # high-severity findings come from react-scripts' dev-only toolchain
+      # (webpack-dev-server etc.) with no non-breaking fix available; those
+      # are tracked manually rather than gating every PR red.
+      - run: npm audit --audit-level=critical
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+      - run: npm ci
+        working-directory: functions
+      - run: npm audit --audit-level=critical
+        working-directory: functions
+
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +63,7 @@ jobs:
       - run: npm run smoke-test
 
   notify-on-failure:
-    needs: [unit-tests, smoke-test]
+    needs: [dependency-audit, unit-tests, smoke-test]
     if: failure() && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
