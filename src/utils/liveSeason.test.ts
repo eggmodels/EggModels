@@ -1,4 +1,4 @@
-import { isSeasonStale, selectSeasonGames } from './liveSeason';
+import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames } from './liveSeason';
 import type { NflGame } from '../types/nfl';
 
 const fallback: NflGame[] = [
@@ -37,5 +37,23 @@ describe('isSeasonStale', () => {
 
   it('is never stale for a non-live season', () => {
     expect(isSeasonStale(false, true, null)).toBe(false);
+  });
+});
+
+describe('parseLiveSeasonDoc', () => {
+  it('returns the matches array from a well-formed doc', () => {
+    expect(parseLiveSeasonDoc(true, { matches: live })).toEqual(live);
+  });
+
+  it('returns null when the doc does not exist', () => {
+    expect(parseLiveSeasonDoc(false, undefined)).toBeNull();
+  });
+
+  it('returns null when the doc exists but has no matches field', () => {
+    expect(parseLiveSeasonDoc(true, {})).toBeNull();
+  });
+
+  it('returns null when matches is not an array (e.g. malformed write)', () => {
+    expect(parseLiveSeasonDoc(true, { matches: 'not-an-array' })).toBeNull();
   });
 });
