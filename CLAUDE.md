@@ -26,7 +26,7 @@ This is a sports-betting-model dashboard. Three loosely-coupled tiers:
 
 2. **React frontend** (`src/`) — CRA app, routes defined inline in `src/App.js`. Each sport has one component under `src/components/` that either (a) imports the committed model JSON statically (`ScheduleNFL.js`, `Parlay.js` import `nflModel2025.json`) or (b) reads from Firestore (`Tennis.js` reads `model_outputs` collection; `Dashboard.js` calls Cloud Functions). Team logos live in `src/logosnfl/` / `src/logosmlb/` and are loaded via `require(\`../logosnfl/${team}.png\`)` — filenames must match the team strings emitted by the scraper exactly.
 
-3. **Cloud Functions** (`functions/index.js`) — Server-side proxies to external betting APIs (ProphetX, Kalshi) so credentials stay off the client. Auth secrets are read from `functions.config().prophetx.*` and `functions.config().kalshi.*` (set via `firebase functions:config:set`). The Dashboard component calls these by hardcoded URL (`https://us-central1-egg-models.cloudfunctions.net/...`).
+3. **Cloud Functions** (`functions/index.js`) — Server-side proxies to external betting APIs (ProphetX, Kalshi, TypeSafe) so credentials stay off the client. Auth secrets are Secret Manager-backed params defined with `defineSecret()` (from `firebase-functions/params`) and bound per-function via `functions.runWith({ secrets: [...] })`; set/update one with `firebase functions:secrets:set <NAME>` then redeploy. `getBets` additionally requires an `x-app-secret` header matching the `APP_SECRET_KEY` secret, since it returns personal wager data. The Dashboard component calls these by hardcoded URL (`https://us-central1-egg-models.cloudfunctions.net/...`).
 
 ### State that's easy to miss
 
