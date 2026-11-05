@@ -4,6 +4,11 @@ const cors = require('cors')({ origin: true });
 const crypto = require('crypto');
 const axios = require("axios");
 const { createPrivateKey } = require("crypto");
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // ─── TypeSafe Setup ──────────────────────────────────────────────────────────
 // TypeSafe (api.typesafe.ai) is a structured-decision model: it answers named
@@ -314,8 +319,48 @@ function buildPickBlurb(game, tierIndex) {
   return `${blurb}.`;
 }
 
-// Rates every game in a week in one TypeSafe call, then templates a one-line
-// blurb per game from the structured confidence tier it returns.
+// Rates a batch of games in one TypeSafe call and templates a one-line blurb
+// per game from the structured confidence tier it returns. Shared by the
+// manual HTTP endpoint below and the weekly scheduled refresh.
+async function computeInsightsForGames(games) {
+  if (games.length === 0) return [];
+
+  const questions = {};
+  games.forEach((game, i) => {
+    questions[`game_${i}`] = {
+      type: "score",
+      instructions: {
+        task: "Rate how lopsided this matchup is based on the model's own numbers.",
+        home: game.home,
+        away: game.away,
+        home_win_probability: game.probH,
+        away_win_probability: game.probA,
+        elo_spread: game.eloSpread,
+      },
+      criteria: CONFIDENCE_LEVELS,
+    };
+  });
+
+  const result = await callTypeSafeSystemOne(
+    "An NFL schedule week. Each question below refers to a different game; rate that game only.",
+    questions,
+  );
+
+  return games.map((game, i) => {
+    const answer = result.answers[`game_${i}`];
+    const tierIndex = answer ? Math.round(answer.score) : 0;
+    return {
+      home: game.home,
+      away: game.away,
+      tier: CONFIDENCE_LEVELS[tierIndex] ?? CONFIDENCE_LEVELS[0],
+      confidence: answer?.confidence ?? null,
+      blurb: buildPickBlurb(game, tierIndex),
+    };
+  });
+}
+
+// Manual/on-demand version of the weekly refresh below — kept for testing a
+// specific set of games without waiting for the schedule.
 exports.getPickInsights = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
@@ -323,40 +368,7 @@ exports.getPickInsights = functions.https.onRequest((req, res) => {
       if (!Array.isArray(games) || games.length === 0) {
         return res.status(400).json({ error: "Missing games array in request body." });
       }
-
-      const questions = {};
-      games.forEach((game, i) => {
-        questions[`game_${i}`] = {
-          type: "score",
-          instructions: {
-            task: "Rate how lopsided this matchup is based on the model's own numbers.",
-            home: game.home,
-            away: game.away,
-            home_win_probability: game.probH,
-            away_win_probability: game.probA,
-            elo_spread: game.eloSpread,
-          },
-          criteria: CONFIDENCE_LEVELS,
-        };
-      });
-
-      const result = await callTypeSafeSystemOne(
-        "An NFL schedule week. Each question below refers to a different game; rate that game only.",
-        questions,
-      );
-
-      const insights = games.map((game, i) => {
-        const answer = result.answers[`game_${i}`];
-        const tierIndex = answer ? Math.round(answer.score) : 0;
-        return {
-          home: game.home,
-          away: game.away,
-          tier: CONFIDENCE_LEVELS[tierIndex] ?? CONFIDENCE_LEVELS[0],
-          confidence: answer?.confidence ?? null,
-          blurb: buildPickBlurb(game, tierIndex),
-        };
-      });
-
+      const insights = await computeInsightsForGames(games);
       res.json({ insights });
     } catch (err) {
       console.error("getPickInsights error:", err);
@@ -364,6 +376,50 @@ exports.getPickInsights = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+// Runs once a week (Tuesdays, after the prior week's games are final and
+// before the new week's lines firm up) rather than on every page load: rates
+// every NFL game that doesn't have a final score yet and writes the results
+// to Firestore, which the frontend reads directly instead of calling
+// TypeSafe itself. nfl_2026/current.matches is written by the separate
+// Python Elo pipeline (functions/nfl_pipeline).
+exports.refreshWeeklyPickInsights = functions.pubsub
+  .schedule('0 10 * * 2')
+  .timeZone('America/New_York')
+  .onRun(async () => {
+    const snap = await admin.firestore().doc('nfl_2026/current').get();
+    const matches = snap.exists ? snap.data().matches : null;
+    if (!Array.isArray(matches)) {
+      console.error('refreshWeeklyPickInsights: nfl_2026/current has no matches array.');
+      return;
+    }
+
+    const upcoming = matches.filter((g) => g.ScoreH == null && g.ScoreA == null);
+    const games = upcoming.map((g) => ({
+      home: g.Home,
+      away: g.Away,
+      probH: g.probH,
+      probA: g.probA,
+      eloSpread: g.eloSpread,
+    }));
+
+    // Keep each TypeSafe call to a reasonable number of questions.
+    const CHUNK_SIZE = 25;
+    const insights = {};
+    for (let i = 0; i < games.length; i += CHUNK_SIZE) {
+      const chunk = games.slice(i, i + CHUNK_SIZE);
+      const chunkInsights = await computeInsightsForGames(chunk);
+      chunkInsights.forEach((insight) => {
+        insights[`${insight.away}@${insight.home}`] = insight;
+      });
+    }
+
+    await admin.firestore().doc('nfl_2026/pickInsights').set({
+      insights,
+      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`refreshWeeklyPickInsights: wrote ${Object.keys(insights).length} insights.`);
+  });
 
 // Matches a free-text search against a list of betting events (ProphetX +
 // Kalshi titles) by meaning rather than exact substring, so phrasing like

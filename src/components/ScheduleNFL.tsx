@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import '../App.css';
 import { useSeason } from '../hooks/useSeason';
 import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
@@ -14,37 +16,19 @@ interface PickInsight {
   blurb: string;
 }
 
-function usePickInsights(weekGames: NflGame[]): Record<string, PickInsight> {
+// Insights are rated by TypeSafe once a week (functions/index.js's
+// refreshWeeklyPickInsights) rather than on every page load, and written to
+// this Firestore doc — so this just reads them, no TypeSafe call per visit.
+function usePickInsights(): Record<string, PickInsight> {
   const [insights, setInsights] = useState<Record<string, PickInsight>>({});
 
   useEffect(() => {
-    if (weekGames.length === 0) {
-      setInsights({});
-      return;
-    }
-
     let cancelled = false;
-    const games = weekGames.map((g) => ({
-      home: g.Home,
-      away: g.Away,
-      probH: g.probH,
-      probA: g.probA,
-      eloSpread: g.eloSpread,
-    }));
 
-    fetch('https://us-central1-egg-models.cloudfunctions.net/getPickInsights', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ games }),
-    })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('insights fetch failed'))))
-      .then((data) => {
-        if (cancelled) return;
-        const byKey: Record<string, PickInsight> = {};
-        (data.insights || []).forEach((insight: PickInsight) => {
-          byKey[`${insight.away}@${insight.home}`] = insight;
-        });
-        setInsights(byKey);
+    getDoc(doc(db, 'nfl_2026', 'pickInsights'))
+      .then((snap) => {
+        if (cancelled || !snap.exists()) return;
+        setInsights((snap.data().insights as Record<string, PickInsight>) || {});
       })
       .catch(() => {
         // Non-essential enhancement — the schedule still renders without it.
@@ -53,8 +37,7 @@ function usePickInsights(weekGames: NflGame[]): Record<string, PickInsight> {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(weekGames.map((g) => g.id))]);
+  }, []);
 
   return insights;
 }
@@ -94,7 +77,7 @@ function ScheduleNFL() {
   const weeks = uniqueWeeks(games);
   const weekGames = games.filter((g: NflGame) => g.Week === selectedWeek);
   const selectedWeekLabel = weekLabel(selectedWeek);
-  const pickInsights = usePickInsights(weekGames);
+  const pickInsights = usePickInsights();
 
   if (loading) {
     return (
