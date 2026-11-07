@@ -1,10 +1,32 @@
-name: Deploy to Firebase Hosting on merge
+name: Deploy to Firebase on merge
 on:
   push:
     branches:
       - master
 jobs:
-  build_and_deploy:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      hosting: ${{ steps.filter.outputs.hosting }}
+      functions: ${{ steps.filter.outputs.functions }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            hosting:
+              - 'src/**'
+              - 'public/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'firebase.json'
+            functions:
+              - 'functions/**'
+
+  deploy_hosting:
+    needs: changes
+    if: needs.changes.outputs.hosting == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +51,20 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_EGG_MODELS }}'
           channelId: live
           projectId: egg-models
+
+  deploy_functions:
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: functions
+      - name: Write service account key
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_EGG_MODELS }}' > ${{ runner.temp }}/firebase-sa.json
+      - run: npx firebase-tools deploy --only functions --project egg-models --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
