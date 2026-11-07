@@ -71,6 +71,10 @@ function NavBar() {
         <NavLink to="/blog" className={({ isActive }) => (isActive ? 'active' : '')}>
           Blog
         </NavLink>
+
+        <NavLink to="/performance" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Performance
+        </NavLink>
       </nav>
     </div>
   );
