@@ -1,8 +1,47 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import '../Performance.css';
-import { SEASONS, seasonData } from '../data/nflSeasons';
-import { computeNflPerformance, computeNflPerformanceBySeason } from '../utils/performance';
+import { LIVE_SEASON, SEASONS, seasonData } from '../data/nflSeasons';
+import { parseLiveSeasonDoc, withTimeout } from '../utils/liveSeason';
+import {
+  computeNflPerformance,
+  computeNflPerformanceBySeason,
+  computeNflPerformanceBySpreadBucket,
+} from '../utils/performance';
 import type { PerformanceStats } from '../utils/performance';
+import type { NflGame } from '../types/nfl';
+
+const LIVE_FETCH_TIMEOUT_MS = 10000;
+
+// The bundled nfl_2026 JSON is a build-time snapshot that's only regenerated
+// occasionally, so most of the live season's completed games aren't in it
+// yet (see useSeason) — fetch the live Firestore doc so the current season
+// grades against every game played so far, not just the handful baked into
+// the last snapshot.
+function useLiveSeasonGames(): NflGame[] | null {
+  const [liveGames, setLiveGames] = useState<NflGame[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    withTimeout(getDoc(doc(db, 'nfl_2026', 'current')), LIVE_FETCH_TIMEOUT_MS)
+      .then((docSnap) => {
+        if (cancelled) return;
+        const matches = parseLiveSeasonDoc(docSnap.exists(), docSnap.exists() ? docSnap.data() : undefined);
+        if (matches) setLiveGames(matches);
+      })
+      .catch((err) => {
+        console.error('Error fetching live NFL data for performance grading:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return liveGames;
+}
 
 function formatPercent(value: number | null): string {
   return value == null ? '—' : `${(value * 100).toFixed(1)}%`;
@@ -23,15 +62,28 @@ function StatTile({ label, value, caption }: { label: string; value: string; cap
 }
 
 function Performance() {
-  const overall = useMemo<PerformanceStats>(
-    () => computeNflPerformance(SEASONS.flatMap((season) => seasonData[season])),
-    [],
+  const liveGames = useLiveSeasonGames();
+
+  // Prefer the live Firestore data for the season still being played — the
+  // bundled JSON is a build-time snapshot that lags behind actual results.
+  const seasonGames = useMemo(
+    () => ({ ...seasonData, [LIVE_SEASON]: liveGames ?? seasonData[LIVE_SEASON] }),
+    [liveGames],
   );
 
-  const bySeason = useMemo(
-    () => computeNflPerformanceBySeason(seasonData, SEASONS),
-    [],
+  const allGames = useMemo(
+    () => SEASONS.flatMap((season) => seasonGames[season]),
+    [seasonGames],
   );
+
+  const overall = useMemo<PerformanceStats>(() => computeNflPerformance(allGames), [allGames]);
+
+  const bySeason = useMemo(
+    () => computeNflPerformanceBySeason(seasonGames, SEASONS),
+    [seasonGames],
+  );
+
+  const bySpread = useMemo(() => computeNflPerformanceBySpreadBucket(allGames), [allGames]);
 
   return (
     <div className="performance-page">
@@ -87,6 +139,28 @@ function Performance() {
                       <td>{stats.spreadMae == null ? '—' : `${stats.spreadMae.toFixed(1)} pts`}</td>
                     </tr>
                   ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="section-title">By Point Spread</h3>
+          <div className="performance-table-container">
+            <table className="performance-table">
+              <thead>
+                <tr>
+                  <th>Favorite By</th>
+                  <th>Games Graded</th>
+                  <th>Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bySpread.map(({ bucket, gamesGraded, accuracy }) => (
+                  <tr key={bucket.label}>
+                    <td>{bucket.label} pts</td>
+                    <td>{gamesGraded}</td>
+                    <td>{formatPercent(accuracy)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
