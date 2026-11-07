@@ -1,4 +1,5 @@
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
 const fetch = require('node-fetch');
 const cors = require('cors')({ origin: true });
 const crypto = require('crypto');
@@ -10,6 +11,15 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+// ─── Secret Manager-backed secrets ──────────────────────────────────────────
+// Set each with: firebase functions:secrets:set <NAME>
+const prophetxAccessKey = defineSecret('PROPHETX_ACCESS_KEY');
+const prophetxSecretKey = defineSecret('PROPHETX_SECRET_KEY');
+const kalshiAccessKey = defineSecret('KALSHI_ACCESS_KEY');
+const kalshiPrivateKey = defineSecret('KALSHI_PRIVATE_KEY');
+const typesafeApiKey = defineSecret('TYPESAFE_API_KEY');
+const appSecretKey = defineSecret('APP_SECRET_KEY');
+
 // ─── TypeSafe Setup ──────────────────────────────────────────────────────────
 // TypeSafe (api.typesafe.ai) is a structured-decision model: it answers named
 // yes/no, multiple-choice, or rubric-score questions about supplied content.
@@ -18,7 +28,7 @@ if (!admin.apps.length) {
 const TYPESAFE_BASE_URL = "https://api.typesafe.ai";
 
 async function callTypeSafeSystemOne(state, questions) {
-  const apiKey = functions.config().typesafe?.api_key;
+  const apiKey = typesafeApiKey.value();
   const response = await fetch(`${TYPESAFE_BASE_URL}/v1/systemone`, {
     method: 'POST',
     headers: {
@@ -45,8 +55,8 @@ async function loginToProphetX() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      access_key: functions.config().prophetx.access_key,
-      secret_key: functions.config().prophetx.secret_key
+      access_key: prophetxAccessKey.value(),
+      secret_key: prophetxSecretKey.value()
     })
   });
 
@@ -69,7 +79,7 @@ async function ensureLoggedIn() {
 
 // ─── ProphetX Endpoints ──────────────────────────────────────────────────────
 
-exports.getEvents = functions.https.onRequest((req, res) => {
+exports.getEvents = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       await ensureLoggedIn();
@@ -97,7 +107,7 @@ exports.getEvents = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.getProphetMarkets = functions.https.onRequest((req, res) => {
+exports.getProphetMarkets = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     const eventId = req.query.event_id;
     if (!eventId) return res.status(400).json({ error: "Missing event_id query param." });
@@ -130,9 +140,9 @@ exports.getProphetMarkets = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.getBets = functions.https.onRequest((req, res) => {
+exports.getBets = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey, appSecretKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
-    const expectedSecret = functions.config().app && functions.config().app.secret_key;
+    const expectedSecret = appSecretKey.value();
     const providedSecret = req.get('x-app-secret');
     if (!expectedSecret || providedSecret !== expectedSecret) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -170,16 +180,14 @@ exports.getBets = functions.https.onRequest((req, res) => {
 });
 
 // ─── Kalshi Setup ────────────────────────────────────────────────────────────
-const KALSHI_ACCESS_KEY = functions.config().kalshi.access_key;
-const KALSHI_PRIVATE_KEY_PEM = functions.config().kalshi.private_key.replace(/\\n/g, '\n');
 const KALSHI_BASE_URL = "https://api.elections.kalshi.com";
 
 // ─── Kalshi Endpoints ────────────────────────────────────────────────────────
 
-exports.getKalshiEvents = functions.https.onRequest((req, res) => {
+exports.getKalshiEvents = functions.runWith({ secrets: [kalshiAccessKey, kalshiPrivateKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
-    const ACCESS_KEY_ID = functions.config().kalshi.access_key;
-    const PRIVATE_KEY_PEM = functions.config().kalshi.private_key.replace(/\\n/g, '\n');
+    const ACCESS_KEY_ID = kalshiAccessKey.value();
+    const PRIVATE_KEY_PEM = kalshiPrivateKey.value().replace(/\\n/g, '\n');
     const BASE_URL = "https://api.elections.kalshi.com";
     const EVENTS_PATH = "/trade-api/v2/events";
 
@@ -238,7 +246,7 @@ exports.getKalshiEvents = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.getKalshiMarketsByEvent = functions.https.onRequest((req, res) => {
+exports.getKalshiMarketsByEvent = functions.runWith({ secrets: [kalshiAccessKey, kalshiPrivateKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     const eventTicker = req.query.event_id;
 
@@ -247,6 +255,8 @@ exports.getKalshiMarketsByEvent = functions.https.onRequest((req, res) => {
     }
 
     try {
+      const KALSHI_ACCESS_KEY = kalshiAccessKey.value();
+      const KALSHI_PRIVATE_KEY_PEM = kalshiPrivateKey.value().replace(/\\n/g, '\n');
       const nowMs = Date.now().toString();
       const path = "/trade-api/v2/markets";
       const message = nowMs + "GET" + path;
@@ -361,7 +371,7 @@ async function computeInsightsForGames(games) {
 
 // Manual/on-demand version of the weekly refresh below — kept for testing a
 // specific set of games without waiting for the schedule.
-exports.getPickInsights = functions.https.onRequest((req, res) => {
+exports.getPickInsights = functions.runWith({ secrets: [typesafeApiKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       const games = req.body?.games;
@@ -383,7 +393,7 @@ exports.getPickInsights = functions.https.onRequest((req, res) => {
 // to Firestore, which the frontend reads directly instead of calling
 // TypeSafe itself. nfl_2026/current.matches is written by the separate
 // Python Elo pipeline (functions/nfl_pipeline).
-exports.refreshWeeklyPickInsights = functions.pubsub
+exports.refreshWeeklyPickInsights = functions.runWith({ secrets: [typesafeApiKey] }).pubsub
   .schedule('0 10 * * 2')
   .timeZone('America/New_York')
   .onRun(async () => {
@@ -424,7 +434,7 @@ exports.refreshWeeklyPickInsights = functions.pubsub
 // Matches a free-text search against a list of betting events (ProphetX +
 // Kalshi titles) by meaning rather than exact substring, so phrasing like
 // "the Bills game" can find "Buffalo Bills @ Miami Dolphins".
-exports.searchOdds = functions.https.onRequest((req, res) => {
+exports.searchOdds = functions.runWith({ secrets: [typesafeApiKey] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       const query = req.body?.query;
