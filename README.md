@@ -43,7 +43,7 @@ then redeploy. `getBets` additionally requires an `x-app-secret` header matching
 - **CI** (`.github/workflows/ci.yml`, every push to `master` and every PR): dependency audit (`npm audit --audit-level=critical`) for both the root app and `functions/`, Jest unit tests, and a Playwright smoke test that builds with no Firebase env vars set (regression guard for a prior incident where a missing `.env.local` produced a blank page) and confirms the app still renders. A failure on `master` emails an alert.
 - **Deploy on merge** (`.github/workflows/firebase-hosting-merge.yml`, push to `master`): path-gated — hosting redeploys only when `src/`, `public/`, `package.json`/`package-lock.json`, or `firebase.json` changed; functions redeploy only when `functions/**` changed. Hosting deploys build with the `REACT_APP_FIREBASE_*` secrets injected and push via `FirebaseExtended/action-hosting-deploy`; functions deploy via `firebase-tools deploy --only functions` using a service-account key written from the `FIREBASE_SERVICE_ACCOUNT_EGG_MODELS` secret.
 
-`master` is protected — changes land through a reviewed, merged pull request rather than a direct push.
+Changes land through a pull request rather than a direct push to `master` (branch protection to enforce this is not yet configured).
 
 ## Things that are easy to miss
 
