@@ -7,6 +7,8 @@ import { currentWeek, uniqueWeeks, weekLabel } from '../utils/week';
 import { getNflTeamLogo } from '../utils/teamLogo';
 import { formatWinProbability, formatSpread } from '../utils/format';
 import SeasonSelector from './SeasonSelector';
+import TeamLogo from './shared/TeamLogo';
+import StaleDataBanner from './shared/StaleDataBanner';
 import type { NflGame } from '../types/nfl';
 
 interface PickInsight {
@@ -42,30 +44,6 @@ function usePickInsights(): Record<string, PickInsight> {
   return insights;
 }
 
-function TeamLogoOrFallback({ team }: { team: string }) {
-  const logoSrc = getNflTeamLogo(team);
-  if (logoSrc) {
-    return <img className="team-logo" src={logoSrc} alt={`${team} Logo`} />;
-  }
-  const initials = team.substring(0, 2).toUpperCase();
-  return (
-    <div
-      className="team-logo"
-      style={{
-        backgroundColor: '#ccc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '10px',
-        fontWeight: 'bold',
-      }}
-      title={team}
-    >
-      {initials}
-    </div>
-  );
-}
-
 function ScheduleNFL() {
   const { season, setSeason, games, loading, stale, trustScores } = useSeason();
   const [selectedWeek, setSelectedWeek] = useState<number>(() => currentWeek(games, trustScores));
@@ -92,9 +70,7 @@ function ScheduleNFL() {
   return (
     <div className="nfl-schedule">
       {stale && !loading && (
-        <div style={{ background: '#fff3cd', color: '#856404', padding: '6px 12px', fontSize: '0.85em', textAlign: 'center', marginBottom: '12px' }}>
-          Showing last saved data — live update failed.
-        </div>
+        <StaleDataBanner message="Showing last saved data — live update failed." />
       )}
       <div className="week-selector">
         <label>Season&nbsp;</label>
@@ -133,7 +109,7 @@ function ScheduleNFL() {
               <tbody>
                 <tr>
                   <td className="team-name">
-                    <TeamLogoOrFallback team={game.Away} />
+                    <TeamLogo team={game.Away} getLogo={getNflTeamLogo} />
                     {game.Away}
                   </td>
                   <td>{formatWinProbability(game.probA)}</td>
@@ -142,7 +118,7 @@ function ScheduleNFL() {
                 </tr>
                 <tr>
                   <td className="team-name">
-                    <TeamLogoOrFallback team={game.Home} />
+                    <TeamLogo team={game.Home} getLogo={getNflTeamLogo} />
                     {game.Home}
                   </td>
                   <td>{formatWinProbability(game.probH)}</td>

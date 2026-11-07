@@ -3,6 +3,7 @@ import '../Performance.css';
 import { SEASONS, seasonData } from '../data/nflSeasons';
 import { computeNflPerformance, computeNflPerformanceBySeason } from '../utils/performance';
 import type { PerformanceStats } from '../utils/performance';
+import { StatTile, StatTileRow } from './shared/StatTile';
 
 function formatPercent(value: number | null): string {
   return value == null ? '—' : `${(value * 100).toFixed(1)}%`;
@@ -10,16 +11,6 @@ function formatPercent(value: number | null): string {
 
 function formatPoints(value: number | null): string {
   return value == null ? '—' : value.toFixed(2);
-}
-
-function StatTile({ label, value, caption }: { label: string; value: string; caption: string }) {
-  return (
-    <div className="stat-tile">
-      <div className="stat-tile-label">{label}</div>
-      <div className="stat-tile-value">{value}</div>
-      <div className="stat-tile-caption">{caption}</div>
-    </div>
-  );
 }
 
 function Performance() {
@@ -45,7 +36,7 @@ function Performance() {
         <p>No completed games to grade yet.</p>
       ) : (
         <>
-          <div className="stat-tile-row">
+          <StatTileRow>
             <StatTile
               label="Straight-up accuracy"
               value={formatPercent(overall.accuracy)}
@@ -61,7 +52,7 @@ function Performance() {
               value={overall.spreadMae == null ? '—' : `${overall.spreadMae.toFixed(1)} pts`}
               caption={`${overall.spreadGraded} games with a posted spread`}
             />
-          </div>
+          </StatTileRow>
 
           <h3 className="section-title">By Season</h3>
           <div className="performance-table-container">

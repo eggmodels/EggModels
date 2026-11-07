@@ -4,7 +4,7 @@ import { useSeason } from '../hooks/useSeason';
 import { currentWeek, weekLabel } from '../utils/week';
 import { calculateParlayOdds } from '../utils/parlay-odds';
 import { getNflTeamLogo } from '../utils/teamLogo';
-import type { NflGame } from '../types/nfl';
+import TeamLogo from './shared/TeamLogo';
 
 // Re-export for external consumers
 export { calculateParlayOdds };
@@ -12,30 +12,6 @@ export { calculateParlayOdds };
 interface WinnerSelection {
   gameId: string | undefined;
   team: string;
-}
-
-function TeamLogoOrFallback({ team }: { team: string }) {
-  const logoSrc = getNflTeamLogo(team);
-  if (logoSrc) {
-    return <img className="team-logo" src={logoSrc} alt={`${team} Logo`} />;
-  }
-  const initials = team.substring(0, 2).toUpperCase();
-  return (
-    <div
-      className="team-logo"
-      style={{
-        backgroundColor: '#ccc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '10px',
-        fontWeight: 'bold',
-      }}
-      title={team}
-    >
-      {initials}
-    </div>
-  );
 }
 
 function Parlay() {
@@ -109,12 +85,12 @@ function Parlay() {
                       )
                     }
                   />
-                  <TeamLogoOrFallback team={game.Away} />
+                  <TeamLogo team={game.Away} getLogo={getNflTeamLogo} />
                   {game.Away}
                 </td>
                 <td className="separator">@</td>
                 <td className="right-column">
-                  <TeamLogoOrFallback team={game.Home} />
+                  <TeamLogo team={game.Home} getLogo={getNflTeamLogo} />
                   {game.Home}
                   <input
                     type="checkbox"

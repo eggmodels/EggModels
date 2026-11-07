@@ -5,3 +5,11 @@ export function getNflTeamLogo(team: string): string | null {
     return null;
   }
 }
+
+export function getMlbTeamLogo(team: string): string | null {
+  try {
+    return require(`../logosmlb/${team}.png`);
+  } catch {
+    return null;
+  }
+}
