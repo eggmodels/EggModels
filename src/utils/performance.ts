@@ -79,3 +79,54 @@ export function computeNflPerformanceBySeason(
     stats: computeNflPerformance(seasonGames[season] ?? []),
   }));
 }
+
+export interface SpreadBucket {
+  label: string;
+  // Inclusive lower bound, exclusive upper bound, of the favorite's
+  // |eloSpread| (points). `null` upper bound means "and up".
+  min: number;
+  max: number | null;
+}
+
+export const SPREAD_BUCKETS: SpreadBucket[] = [
+  { label: '0-3', min: 0, max: 3 },
+  { label: '3-7', min: 3, max: 7 },
+  { label: '7-10', min: 7, max: 10 },
+  { label: '10-14', min: 10, max: 14 },
+  { label: '14+', min: 14, max: null },
+];
+
+export interface SpreadBucketPerformance {
+  bucket: SpreadBucket;
+  gamesGraded: number;
+  picksCorrect: number;
+  accuracy: number | null;
+}
+
+// Groups graded games by how big a favorite the model's spread made them,
+// so Eugenio can see whether the model is more or less reliable on
+// near-even games vs. lopsided ones.
+export function computeNflPerformanceBySpreadBucket(games: NflGame[]): SpreadBucketPerformance[] {
+  const graded = games.filter((g) => isGraded(g) && g.eloSpread != null);
+
+  return SPREAD_BUCKETS.map((bucket) => {
+    const inBucket = graded.filter((g) => {
+      const magnitude = Math.abs(g.eloSpread as number);
+      return magnitude >= bucket.min && (bucket.max == null || magnitude < bucket.max);
+    });
+
+    let picksCorrect = 0;
+    for (const game of inBucket) {
+      const homeWon = (game.ScoreH as number) > (game.ScoreA as number);
+      const homeFavored = (game.probH as number) >= (game.probA as number);
+      if (homeFavored === homeWon) picksCorrect += 1;
+    }
+
+    return {
+      bucket,
+      gamesGraded: inBucket.length,
+      picksCorrect,
+      accuracy: inBucket.length > 0 ? picksCorrect / inBucket.length : null,
+    };
+  });
+}
