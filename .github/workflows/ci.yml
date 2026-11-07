@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Email on CI failure
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v24
         with:
           server_address: smtp.gmail.com
           server_port: 465
