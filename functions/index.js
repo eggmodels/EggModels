@@ -1,14 +1,15 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
-const fetch = require('node-fetch');
 const cors = require('cors')({ origin: true });
 const crypto = require('crypto');
 const axios = require("axios");
 const { createPrivateKey } = require("crypto");
-const admin = require('firebase-admin');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
-if (!admin.apps.length) {
-  admin.initializeApp();
+if (!getApps().length) {
+  initializeApp();
 }
 
 // ─── Secret Manager-backed secrets ──────────────────────────────────────────
@@ -79,7 +80,7 @@ async function ensureLoggedIn() {
 
 // ─── ProphetX Endpoints ──────────────────────────────────────────────────────
 
-exports.getEvents = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey] }).https.onRequest((req, res) => {
+exports.getEvents = onRequest({ secrets: [prophetxAccessKey, prophetxSecretKey] }, (req, res) => {
   cors(req, res, async () => {
     try {
       await ensureLoggedIn();
@@ -107,7 +108,7 @@ exports.getEvents = functions.runWith({ secrets: [prophetxAccessKey, prophetxSec
   });
 });
 
-exports.getProphetMarkets = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey] }).https.onRequest((req, res) => {
+exports.getProphetMarkets = onRequest({ secrets: [prophetxAccessKey, prophetxSecretKey] }, (req, res) => {
   cors(req, res, async () => {
     const eventId = req.query.event_id;
     if (!eventId) return res.status(400).json({ error: "Missing event_id query param." });
@@ -140,7 +141,7 @@ exports.getProphetMarkets = functions.runWith({ secrets: [prophetxAccessKey, pro
   });
 });
 
-exports.getBets = functions.runWith({ secrets: [prophetxAccessKey, prophetxSecretKey, appSecretKey] }).https.onRequest((req, res) => {
+exports.getBets = onRequest({ secrets: [prophetxAccessKey, prophetxSecretKey, appSecretKey] }, (req, res) => {
   cors(req, res, async () => {
     const expectedSecret = appSecretKey.value();
     const providedSecret = req.get('x-app-secret');
@@ -184,7 +185,7 @@ const KALSHI_BASE_URL = "https://api.elections.kalshi.com";
 
 // ─── Kalshi Endpoints ────────────────────────────────────────────────────────
 
-exports.getKalshiEvents = functions.runWith({ secrets: [kalshiAccessKey, kalshiPrivateKey] }).https.onRequest((req, res) => {
+exports.getKalshiEvents = onRequest({ secrets: [kalshiAccessKey, kalshiPrivateKey] }, (req, res) => {
   cors(req, res, async () => {
     const ACCESS_KEY_ID = kalshiAccessKey.value();
     const PRIVATE_KEY_PEM = kalshiPrivateKey.value().replace(/\\n/g, '\n');
@@ -246,7 +247,7 @@ exports.getKalshiEvents = functions.runWith({ secrets: [kalshiAccessKey, kalshiP
   });
 });
 
-exports.getKalshiMarketsByEvent = functions.runWith({ secrets: [kalshiAccessKey, kalshiPrivateKey] }).https.onRequest((req, res) => {
+exports.getKalshiMarketsByEvent = onRequest({ secrets: [kalshiAccessKey, kalshiPrivateKey] }, (req, res) => {
   cors(req, res, async () => {
     const eventTicker = req.query.event_id;
 
@@ -371,7 +372,7 @@ async function computeInsightsForGames(games) {
 
 // Manual/on-demand version of the weekly refresh below — kept for testing a
 // specific set of games without waiting for the schedule.
-exports.getPickInsights = functions.runWith({ secrets: [typesafeApiKey] }).https.onRequest((req, res) => {
+exports.getPickInsights = onRequest({ secrets: [typesafeApiKey] }, (req, res) => {
   cors(req, res, async () => {
     try {
       const games = req.body?.games;
@@ -393,11 +394,10 @@ exports.getPickInsights = functions.runWith({ secrets: [typesafeApiKey] }).https
 // to Firestore, which the frontend reads directly instead of calling
 // TypeSafe itself. nfl_2026/current.matches is written by the separate
 // Python Elo pipeline (functions/nfl_pipeline).
-exports.refreshWeeklyPickInsights = functions.runWith({ secrets: [typesafeApiKey] }).pubsub
-  .schedule('0 10 * * 2')
-  .timeZone('America/New_York')
-  .onRun(async () => {
-    const snap = await admin.firestore().doc('nfl_2026/current').get();
+exports.refreshWeeklyPickInsights = onSchedule(
+  { schedule: '0 10 * * 2', timeZone: 'America/New_York', secrets: [typesafeApiKey] },
+  async () => {
+    const snap = await getFirestore().doc('nfl_2026/current').get();
     const matches = snap.exists ? snap.data().matches : null;
     if (!Array.isArray(matches)) {
       console.error('refreshWeeklyPickInsights: nfl_2026/current has no matches array.');
@@ -424,17 +424,18 @@ exports.refreshWeeklyPickInsights = functions.runWith({ secrets: [typesafeApiKey
       });
     }
 
-    await admin.firestore().doc('nfl_2026/pickInsights').set({
+    await getFirestore().doc('nfl_2026/pickInsights').set({
       insights,
-      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      generatedAt: FieldValue.serverTimestamp(),
     });
     console.log(`refreshWeeklyPickInsights: wrote ${Object.keys(insights).length} insights.`);
-  });
+  },
+);
 
 // Matches a free-text search against a list of betting events (ProphetX +
 // Kalshi titles) by meaning rather than exact substring, so phrasing like
 // "the Bills game" can find "Buffalo Bills @ Miami Dolphins".
-exports.searchOdds = functions.runWith({ secrets: [typesafeApiKey] }).https.onRequest((req, res) => {
+exports.searchOdds = onRequest({ secrets: [typesafeApiKey] }, (req, res) => {
   cors(req, res, async () => {
     try {
       const query = req.body?.query;
