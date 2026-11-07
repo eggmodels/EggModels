@@ -39,14 +39,14 @@ function TeamLogoOrFallback({ team }: { team: string }) {
 }
 
 function Parlay() {
-  const { season, games, loading } = useSeason();
+  const { season, games, loading, trustScores } = useSeason();
   const [selectedWinners, setSelectedWinners] = useState<Array<WinnerSelection | null>>([]);
-  const [week, setWeek] = useState<number>(() => currentWeek(games));
+  const [week, setWeek] = useState<number>(() => currentWeek(games, trustScores));
 
   useEffect(() => {
-    setWeek(currentWeek(games));
+    setWeek(currentWeek(games, trustScores));
     setSelectedWinners([]);
-  }, [season, games]);
+  }, [season, games, trustScores]);
 
   const weekGames = useMemo(
     () => games.filter((g) => g.Week === week),

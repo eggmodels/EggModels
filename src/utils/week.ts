@@ -14,8 +14,22 @@ export function weekLabel(week: number): string {
 // The week to default to: the earliest week that still has an unplayed
 // game, so the view only advances once every game in a week is final
 // (not as soon as a single Thursday-night game finishes).
-export function currentWeek(games: NflGame[]): number {
+//
+// `trustScores` should be false for a data source that isn't kept in
+// sync with the real season (e.g. the bundled fallback JSON, generated
+// once and never re-run with results) — its ScoreH/ScoreA can't be
+// trusted to reflect what's actually been played, even where a few
+// happen to be non-null (a stray/incomplete write is enough to fool a
+// "does anything have a score" check: the earliest week with a gap
+// then wins, which can be week 1 even deep into the season). In that
+// case, fall back to each week's game dates instead, so the default
+// still lands near "now".
+export function currentWeek(games: NflGame[], trustScores = true): number {
   const weeks = uniqueWeeks(games);
+  if (weeks.length === 0) return 1;
+
+  if (!trustScores) return currentWeekByDate(games, weeks);
+
   for (const week of weeks) {
     const weekGames = games.filter((g) => g.Week === week);
     const allPlayed = weekGames.every(
@@ -23,7 +37,19 @@ export function currentWeek(games: NflGame[]): number {
     );
     if (!allPlayed) return week;
   }
-  return weeks.length > 0 ? weeks[weeks.length - 1] : 1;
+  return weeks[weeks.length - 1];
+}
+
+function currentWeekByDate(games: NflGame[], weeks: number[]): number {
+  const now = Date.now();
+  for (const week of weeks) {
+    const weekGames = games.filter((g) => g.Week === week);
+    const latestKickoff = Math.max(
+      ...weekGames.map((g) => new Date(g.Date).getTime()),
+    );
+    if (Number.isNaN(latestKickoff) || latestKickoff >= now) return week;
+  }
+  return weeks[weeks.length - 1];
 }
 
 export function uniqueWeeks(games: NflGame[]): number[] {

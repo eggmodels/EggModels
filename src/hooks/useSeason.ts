@@ -8,7 +8,10 @@ import {
   isSeason,
   seasonData,
 } from '../data/nflSeasons';
+import { isSeasonStale, parseLiveSeasonDoc, selectSeasonGames, withTimeout } from '../utils/liveSeason';
 import type { NflGame, Season } from '../types/nfl';
+
+const LIVE_FETCH_TIMEOUT_MS = 10000;
 
 export interface UseSeasonResult {
   season: Season;
@@ -16,12 +19,15 @@ export interface UseSeasonResult {
   games: NflGame[];
   loading: boolean;
   stale: boolean;
+  // False only when showing the bundled fallback for the live season —
+  // that JSON isn't kept in sync with the real season (see week.ts) — so
+  // consumers like currentWeek() know not to trust its ScoreH/ScoreA.
+  trustScores: boolean;
 }
 
 export function useSeason(): UseSeasonResult {
   const [searchParams, setSearchParams] = useSearchParams();
   const [liveGames, setLiveGames] = useState<NflGame[] | null>(null);
-  const [liveFetchDone, setLiveFetchDone] = useState(false);
   const [liveFetchFailed, setLiveFetchFailed] = useState(false);
 
   const season: Season = useMemo(() => {
@@ -48,19 +54,20 @@ export function useSeason(): UseSeasonResult {
 
     const fetchLiveSeason = async () => {
       try {
-        const docSnap = await getDoc(doc(db, 'nfl_2026', 'current'));
-        if (!cancelled && docSnap.exists()) {
-          const data = docSnap.data();
-          if (Array.isArray(data.matches)) {
-            setLiveGames(data.matches as NflGame[]);
-          }
+        const docSnap = await withTimeout(getDoc(doc(db, 'nfl_2026', 'current')), LIVE_FETCH_TIMEOUT_MS);
+        if (cancelled) return;
+
+        const matches = parseLiveSeasonDoc(docSnap.exists(), docSnap.exists() ? docSnap.data() : undefined);
+        if (matches) {
+          setLiveGames(matches);
+        } else {
+          console.error('Live NFL data doc missing or malformed:', docSnap.exists() ? docSnap.data() : 'not found');
+          setLiveFetchFailed(true);
         }
       } catch (err) {
         // Falls back to the statically bundled season data below.
         console.error('Error fetching live NFL data:', err);
         if (!cancelled) setLiveFetchFailed(true);
-      } finally {
-        if (!cancelled) setLiveFetchDone(true);
       }
     };
 
@@ -70,10 +77,14 @@ export function useSeason(): UseSeasonResult {
     };
   }, [season]);
 
-  const loading = season === LIVE_SEASON && !liveFetchDone;
-  const games =
-    season === LIVE_SEASON && liveGames ? liveGames : seasonData[season];
-  const stale = season === LIVE_SEASON && liveFetchFailed;
+  // The bundled season JSON (committed at build time) covers the live season
+  // too, so it renders immediately; the Firestore read above only refreshes
+  // it in the background instead of blocking the page on a network round trip.
+  const loading = false;
+  const isLiveSeason = season === LIVE_SEASON;
+  const games = selectSeasonGames(isLiveSeason, liveGames, seasonData[season]);
+  const stale = isSeasonStale(isLiveSeason, liveFetchFailed, liveGames);
+  const trustScores = !isLiveSeason || liveGames != null;
 
-  return { season, setSeason, games, loading, stale };
+  return { season, setSeason, games, loading, stale, trustScores };
 }

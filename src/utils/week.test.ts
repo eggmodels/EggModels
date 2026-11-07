@@ -191,6 +191,75 @@ describe('currentWeek', () => {
     });
   });
 
+  describe('trustScores: false (stale bundled fallback snapshot)', () => {
+    const createDatedGame = (week: number, date: string): NflGame => ({
+      ...createGame(week, null, null),
+      Date: date,
+    });
+
+    it('falls back to game dates instead of defaulting to week 1', () => {
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      const iso = (offsetDays: number) => new Date(now + offsetDays * day).toISOString();
+
+      const games: NflGame[] = [
+        createDatedGame(1, iso(-60)), // long past
+        createDatedGame(2, iso(-53)),
+        // Week 9: Thursday game already happened, Sunday game hasn't yet —
+        // the week counts as "current" as long as its last game is ahead.
+        createDatedGame(9, iso(-3)),
+        createDatedGame(9, iso(1)),
+        createDatedGame(10, iso(8)), // upcoming
+      ];
+
+      expect(currentWeek(games, false)).toBe(9);
+    });
+
+    it('still returns the last week once every date has passed', () => {
+      const games: NflGame[] = [
+        createDatedGame(1, '2020-01-01'),
+        createDatedGame(2, '2020-01-08'),
+      ];
+
+      expect(currentWeek(games, false)).toBe(2);
+    });
+
+    it('ignores scores entirely when trustScores is false, even if some games have one', () => {
+      // Regression: the real bundled nflModel2026.json has a couple of
+      // stray/incomplete ScoreH/ScoreA values (e.g. two week-1 primetime
+      // games) despite the rest of the season being unplayed in it. A
+      // "does anything have a score" heuristic would latch onto those
+      // and use the by-score path, landing back on week 1 — trustScores
+      // being explicit (set by the caller based on data source, not
+      // inferred from the data itself) avoids that trap.
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      const iso = (offsetDays: number) => new Date(now + offsetDays * day).toISOString();
+
+      const games: NflGame[] = [
+        { ...createGame(1, 13, 10), Date: iso(-60) }, // stray scored game
+        { ...createGame(1, 7, 27), Date: iso(-59) }, // stray scored game
+        ...Array.from({ length: 13 }, (_, i) => createDatedGame(1, iso(-58))),
+        createDatedGame(9, iso(1)),
+      ];
+
+      expect(currentWeek(games, false)).toBe(9);
+    });
+  });
+
+  describe('trustScores: true (default — live or real historical data)', () => {
+    it('uses the by-score logic even when every game is unplayed and dated in the past', () => {
+      const games: NflGame[] = [
+        { ...createGame(1, null, null), Date: '2020-01-01' },
+      ];
+
+      // Without an explicit false, trustScores defaults to true: this is
+      // what authoritative (live Firestore / real historical) data looks
+      // like, so the by-score logic — not the date fallback — applies.
+      expect(currentWeek(games)).toBe(1);
+    });
+  });
+
   describe('playoff weeks', () => {
     it('returns correct week in playoff scheduling', () => {
       const games: NflGame[] = [

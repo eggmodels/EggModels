@@ -1,6 +1,6 @@
 import { initializeApp, type FirebaseOptions } from 'firebase/app';
 import { getAnalytics, type Analytics } from 'firebase/analytics';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -26,4 +26,12 @@ try {
   console.error('Firebase Analytics failed to initialize; continuing without it.', err);
 }
 export const analytics: Analytics | undefined = analyticsInstance;
-export const db: Firestore = getFirestore(app);
+// Firestore's default transport (fetch streams) hangs indefinitely — neither
+// resolving nor rejecting — behind some corporate firewalls/antivirus SSL
+// inspection and certain VPNs/proxies, since they break HTTP/2 streaming
+// without closing the connection. experimentalAutoDetectLongPolling probes
+// for that and falls back to XHR-based long-polling automatically, so this
+// isn't a blanket performance tradeoff for everyone else.
+export const db: Firestore = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
