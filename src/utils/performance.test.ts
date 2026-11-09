@@ -1,4 +1,8 @@
-import { computeNflPerformance, computeNflPerformanceBySeason } from './performance';
+import {
+  computeNflPerformance,
+  computeNflPerformanceBySeason,
+  computeNflPerformanceBySpreadBucket,
+} from './performance';
 import type { NflGame, Season } from '../types/nfl';
 
 const game = (overrides: Partial<NflGame> = {}): NflGame =>
@@ -84,5 +88,32 @@ describe('computeNflPerformanceBySeason', () => {
       { season: 2025, stats: expect.objectContaining({ gamesGraded: 1, picksCorrect: 1 }) },
       { season: 2026, stats: expect.objectContaining({ gamesGraded: 0 }) },
     ]);
+  });
+});
+
+describe('computeNflPerformanceBySpreadBucket', () => {
+  it('buckets games by the magnitude of the favorite spread and grades each bucket', () => {
+    const result = computeNflPerformanceBySpreadBucket([
+      // 2-point favorite (home), home wins -> correct, falls in "0-3"
+      game({ probH: 0.55, probA: 0.45, eloSpread: -2, ScoreH: 20, ScoreA: 17 }),
+      // 12-point favorite (home), home loses -> wrong, falls in "10-14"
+      game({ probH: 0.85, probA: 0.15, eloSpread: -12, ScoreH: 10, ScoreA: 24 }),
+    ]);
+
+    const small = result.find((r) => r.bucket.label === '0-3');
+    const large = result.find((r) => r.bucket.label === '10-14');
+    expect(small).toMatchObject({ gamesGraded: 1, picksCorrect: 1, accuracy: 1 });
+    expect(large).toMatchObject({ gamesGraded: 1, picksCorrect: 0, accuracy: 0 });
+
+    const untouched = result.find((r) => r.bucket.label === '3-7');
+    expect(untouched).toMatchObject({ gamesGraded: 0, accuracy: null });
+  });
+
+  it('excludes ungraded games and games with no spread', () => {
+    const result = computeNflPerformanceBySpreadBucket([
+      game({ ScoreH: null, ScoreA: null }),
+      game({ probH: 0.6, probA: 0.4, ScoreH: 20, ScoreA: 10, eloSpread: null }),
+    ]);
+    expect(result.every((r) => r.gamesGraded === 0)).toBe(true);
   });
 });
