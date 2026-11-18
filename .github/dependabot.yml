@@ -11,6 +11,12 @@ updates:
         dependency-type: "production"
       development-dependencies:
         dependency-type: "development"
+    ignore:
+      # react-scripts 5.0.1 (CRA) hard-pins typescript to ^3.2.1 || ^4 as a
+      # peer dependency; a TS5+ bump breaks the build outright until CRA is
+      # replaced (see PR #35/#48).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # Firebase Cloud Functions
   - package-ecosystem: "npm"
