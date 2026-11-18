@@ -5,6 +5,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import '../css/ScheduleMLB.css';
 import { formatWinProbability } from '../utils/format';
 import { useMlbSchedule } from '../hooks/useMlbSchedule';
+import { getMlbTeamLogo } from '../utils/teamLogo';
+import TeamLogo from './shared/TeamLogo';
+import StaleDataBanner from './shared/StaleDataBanner';
 
 // The bundled fallback dataset is a fixed historical season (2024), so
 // defaulting the picker to "today" would show an empty page whenever live
@@ -42,9 +45,7 @@ const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
     return (
         <div className="mlb-schedule">
             {stale && !loading && (
-                <div style={{ background: '#fff3cd', color: '#856404', padding: '6px 12px', fontSize: '0.85em', textAlign: 'center', marginBottom: '12px' }}>
-                    Live 2026 data isn't available yet — showing the 2024 season.
-                </div>
+                <StaleDataBanner message="Live 2026 data isn't available yet — showing the 2024 season." />
             )}
             <div className="week-selector">
                 <button onClick={handleCalendarVisibility}>
@@ -79,7 +80,7 @@ const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
                                 <tbody>
                                     <tr>
                                         <td className='team-name'>
-                                            <img className='team-logo' src={require(`../logosmlb/${game.team2}.png`)} alt={`${game.team2} Logo`} />
+                                            <TeamLogo team={game.team2} getLogo={getMlbTeamLogo} />
                                             {game.team2}
                                         </td>
                                         <td>{formatWinProbability(game.elo_prob2)}</td>
@@ -88,7 +89,7 @@ const ScheduleMLB = ({ activeTab }: { activeTab?: unknown } = {}) => {
                                     </tr>
                                     <tr>
                                         <td className='team-name'>
-                                            <img className='team-logo' src={require(`../logosmlb/${game.team1}.png`)} alt={`${game.team1} Logo`} />
+                                            <TeamLogo team={game.team1} getLogo={getMlbTeamLogo} />
                                             {game.team1}
                                         </td>
                                         <td>{formatWinProbability(game.elo_prob1)}</td>
