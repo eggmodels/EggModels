@@ -17,10 +17,31 @@ gcloud iam service-accounts create "$SA_NAME" \
   --project="$PROJECT_ID" \
   --display-name="Stops the factory VM when the budget is exceeded" || true
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/compute.instanceAdmin.v1" \
-  --condition=None
+# New service accounts can take a few seconds to propagate; retry both the
+# existence check and the binding itself rather than failing on the first try.
+echo "Waiting for $SA_EMAIL to propagate..."
+for i in $(seq 1 10); do
+  if gcloud iam service-accounts describe "$SA_EMAIL" --project="$PROJECT_ID" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 3
+done
+
+for i in $(seq 1 5); do
+  if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="roles/compute.instanceAdmin.v1" \
+      --condition=None >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$i" -eq 5 ]; then
+    echo "Still failing to bind IAM policy after retries. Wait ~30s and re-run:" >&2
+    echo "  gcloud projects add-iam-policy-binding $PROJECT_ID --member=serviceAccount:$SA_EMAIL --role=roles/compute.instanceAdmin.v1 --condition=None" >&2
+    exit 1
+  fi
+  echo "Retrying IAM binding ($i/5)..."
+  sleep 5
+done
 
 gcloud functions deploy stop-eggmodels-factory-on-budget \
   --project="$PROJECT_ID" \
