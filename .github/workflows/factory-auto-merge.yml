@@ -1,0 +1,52 @@
+name: Factory auto-merge
+
+# Enables auto-merge for PRs the software factory opens (see
+# software-factory/README.md), unless they touch secrets/auth, deploy/CI
+# config, or security rules — those always wait for a human review instead.
+
+on:
+  pull_request:
+    types: [opened, labeled, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  evaluate:
+    if: contains(github.event.pull_request.labels.*.name, 'factory-automated')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check for sensitive paths
+        id: sensitive
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Changed files:"
+          echo "$CHANGED"
+          PATTERN='^(functions/|\.github/workflows/|firestore\.rules$|database\.rules\.json$|firebase\.json$|\.firebaserc$)'
+          if echo "$CHANGED" | grep -E "$PATTERN" > /dev/null; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Flag for manual review
+        if: steps.sensitive.outputs.hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body \
+            "This PR touches secrets/auth, deploy or CI config, or security rules. Per the [software factory policy](https://github.com/${{ github.repository }}/blob/master/software-factory/README.md#auto-merge-policy), it will wait for human review instead of auto-merging."
+
+      - name: Enable auto-merge
+        if: steps.sensitive.outputs.hit == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --auto --squash

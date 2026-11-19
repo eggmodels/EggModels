@@ -34,3 +34,10 @@ This is a sports-betting-model dashboard. Three loosely-coupled tiers:
 - **Firebase web config** is loaded from `REACT_APP_FIREBASE_*` env vars in `src/firebase.js`; `.env.local` is git-ignored. Without these, the Firestore-backed pages (Tennis, anything reading `db`) will fail silently in the console.
 - The Realtime Database rules in `database.rules.json` are locked down (`read: false`, `write: false`) — the app uses **Firestore**, not RTDB. Don't accidentally point new code at RTDB.
 - `nflModel.json` and `nfl_schedule.json` at repo root are deleted in the current working tree; the live model file is `src/python/nfl_2025/nflModel2025.json`.
+
+## Continuous improvement
+
+A weekly automated run picks one small improvement, implements it, and opens
+a PR — see [`software-factory/README.md`](./software-factory/README.md) for
+how the cadence, backlog, agent roles, and auto-merge policy are defined as
+code.
