@@ -53,6 +53,11 @@ if [ ! -d "$HOME/eggmodels-factory" ]; then
   exit 0
 fi
 
+if [ -f "$HOME/.factory-env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.factory-env"
+fi
+
 echo "Running the factory job."
 FACTORY_IMPLEMENTER="${FACTORY_IMPLEMENTER:-claude-code}" \
   bash /opt/factory/run-factory.sh || echo "run-factory.sh exited non-zero; see log above."

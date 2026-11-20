@@ -72,6 +72,22 @@ Scheduler job starts it unattended every week; the startup script runs the
 factory job non-interactively and shuts the VM down when it's done (success
 or failure), so it never runs longer than one job takes.
 
+### Saving the token from `claude setup-token`
+
+`claude setup-token` prints a token on its last line. The startup script
+sources `~/.factory-env` (i.e. `/root/.factory-env` when you're root over
+SSH, which you are by default on this VM) right before running the job, so
+save it there:
+
+```bash
+echo 'export CLAUDE_CODE_OAUTH_TOKEN=paste-the-printed-token-here' >> ~/.factory-env
+chmod 600 ~/.factory-env
+```
+
+If you're using the `aider` implementer instead (`FACTORY_IMPLEMENTER=aider`),
+put your Anthropic/OpenAI API key in the same file the same way:
+`export ANTHROPIC_API_KEY=...`.
+
 ## Kill switch
 
 `04-set-budget.sh` creates a budget with email alerts at 50/90/100% of
