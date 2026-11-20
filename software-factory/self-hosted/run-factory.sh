@@ -23,12 +23,22 @@ WORKDIR="${FACTORY_WORKDIR:-$HOME/eggmodels-factory}"
 IMPLEMENTER="${FACTORY_IMPLEMENTER:-claude-code}"
 BACKLOG="software-factory/BACKLOG.md"
 BASE_BRANCH="master"
-RECORD_RUN="$WORKDIR/software-factory/self-hosted/record-run/record-run.mjs"
+RECORD_RUN_DIR="$WORKDIR/software-factory/self-hosted/record-run"
+RECORD_RUN="$RECORD_RUN_DIR/record-run.mjs"
 # Rough e2-small on-demand us-central1 rate, per gcp/README.md's cost
 # estimate -- not metered per-run, just (run duration) x (this constant), so
 # treat the resulting computeCostUsd as approximate. Override if your region
 # or machine type differs.
 VM_HOURLY_USD="${FACTORY_VM_HOURLY_USD:-0.021}"
+
+# record-run.mjs needs firebase-admin installed in its own directory (see
+# setup-record-run.sh); a fresh git pull of this repo won't have run that,
+# so install on demand rather than relying on someone remembering the
+# one-time step. Cheap no-op once node_modules already exists.
+if [ ! -d "$RECORD_RUN_DIR/node_modules" ]; then
+  (cd "$RECORD_RUN_DIR" && npm install --omit=dev) || \
+    echo "run-factory.sh: couldn't install record-run's dependencies; run logging will be skipped this run."
+fi
 
 record() {
   # record <run-id> <json-merge-patch>

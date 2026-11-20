@@ -28,6 +28,12 @@ if [ -z "$KEY_PATH" ] || [ ! -f "$KEY_PATH" ]; then
   exit 0
 fi
 
+# Same on-demand install as run-factory.sh -- see its comment for why.
+if [ ! -d "$RECORD_RUN_DIR/node_modules" ]; then
+  (cd "$RECORD_RUN_DIR" && npm install --omit=dev) || \
+    echo "self-improve.sh: couldn't install record-run's dependencies; skipping."
+fi
+
 EVIDENCE_FILE="$(mktemp)"
 # Run from record-run/, the only place firebase-admin is installed (its own
 # package.json, kept separate from the app/functions dependency trees).

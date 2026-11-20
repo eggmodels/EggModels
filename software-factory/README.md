@@ -23,6 +23,28 @@ instead of only as settings tucked away in a Claude project.
 - Capped at **one PR per run** — this is about steady, reviewable
   improvement, not a flood of changes.
 
+## On-demand runs
+
+Labeling any GitHub issue `factory-request` (easy from the GitHub mobile
+app — new issue, title = what you want, apply the label) fires
+[`.github/workflows/factory-trigger.yml`](../.github/workflows/factory-trigger.yml),
+which inserts that issue at the **top** of `BACKLOG.md` (so it's picked
+next, not queued behind whatever's already there) and starts the factory
+VM right away instead of waiting for Monday. It comments on the issue once
+queued and closes it.
+
+Only fires for issues from Eugenio's own account, and is capped at 3
+successful triggers per rolling 24h (checked against this workflow's own
+run history — no extra state to maintain) to guard against a runaway loop;
+starting an already-running VM is a no-op, so an overlapping trigger never
+doubles up a run. The weekly Monday schedule still runs independently as a
+free fallback.
+
+A direct push to `BACKLOG.md` was considered as a second trigger (so
+editing it from the GitHub app would also work) but skipped: the factory's
+own commits touch that same file when checking off a backlog item, which
+would risk the factory re-triggering itself on every run it finishes.
+
 ## Auto-merge policy
 
 [`.github/workflows/factory-auto-merge.yml`](../.github/workflows/factory-auto-merge.yml)
