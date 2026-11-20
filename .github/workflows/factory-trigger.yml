@@ -51,10 +51,19 @@ jobs:
 
       - name: Flag the VM's next boot with this request, then start it
         if: steps.ratelimit.outputs.skip == 'false'
+        # Issue title/body are untrusted text; pass them through env vars
+        # rather than splicing ${{ }} directly into the script below, so a
+        # title like `"; rm -rf . #` can't break out of the quoted argument
+        # and run as shell in a job that's already authenticated with the
+        # GCP_FACTORY_TRIGGER_SA_KEY service account from the step above.
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           PAYLOAD="$(node -e '
             console.log(JSON.stringify({ title: process.argv[1], body: process.argv[2], issueNumber: process.argv[3] }));
-          ' "${{ github.event.issue.title }}" "$(echo "${{ github.event.issue.body }}" | head -1)" "${{ github.event.issue.number }}" | base64 -w0)"
+          ' "$ISSUE_TITLE" "$(printf '%s' "$ISSUE_BODY" | head -1)" "$ISSUE_NUMBER" | base64 -w0)"
 
           gcloud compute instances add-metadata eggmodels-factory-vm \
             --project="${{ vars.FACTORY_GCP_PROJECT_ID || 'eggmodels-factory' }}" \
