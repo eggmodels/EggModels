@@ -1,1 +1,103 @@
-bmFtZTogT24tZGVtYW5kIGZhY3RvcnkgdHJpZ2dlcgoKIyBMZXRzIEV1Z2VuaW8ga2ljayBvZmYgdGhlIGZhY3RvcnkgcmlnaHQgYXdheSBpbnN0ZWFkIG9mIHdhaXRpbmcgZm9yIHRoZQojIE1vbmRheSBzY2hlZHVsZTogbGFiZWwgYW55IGlzc3VlIGBmYWN0b3J5LXJlcXVlc3RgIChlYXN5IGZyb20gdGhlIEdpdEh1YgojIG1vYmlsZSBhcHApIGFuZCB0aGlzIGluc2VydHMgaXQgYXQgdGhlIHRvcCBvZiBzb2Z0d2FyZS1mYWN0b3J5L0JBQ0tMT0cubWQKIyBhbmQgc3RhcnRzIHRoZSBmYWN0b3J5IFZNLiBTZWUgc29mdHdhcmUtZmFjdG9yeS9SRUFETUUubWQjb24tZGVtYW5kLXJ1bnMuCm9uOgogIGlzc3VlczoKICAgIHR5cGVzOiBbbGFiZWxlZF0KCmNvbmN1cnJlbmN5OgogIGdyb3VwOiBmYWN0b3J5LXRyaWdnZXIKICBjYW5jZWwtaW4tcHJvZ3Jlc3M6IGZhbHNlCgpqb2JzOgogIHRyaWdnZXI6CiAgICBpZjogZ2l0aHViLmV2ZW50LmxhYmVsLm5hbWUgPT0gJ2ZhY3RvcnktcmVxdWVzdCcgJiYgZ2l0aHViLmV2ZW50Lmlzc3VlLnVzZXIubG9naW4gPT0gJ2V1Z2VuaW9nYXJ6YWcnCiAgICBydW5zLW9uOiB1YnVudHUtbGF0ZXN0CiAgICBwZXJtaXNzaW9uczoKICAgICAgY29udGVudHM6IHdyaXRlCiAgICAgIGlzc3Vlczogd3JpdGUKICAgICAgYWN0aW9uczogcmVhZAogICAgc3RlcHM6CiAgICAgIC0gdXNlczogYWN0aW9ucy9jaGVja291dEB2NwoKICAgICAgLSBuYW1lOiBSYXRlLWxpbWl0IG9uLWRlbWFuZCB0cmlnZ2VycwogICAgICAgIGlkOiByYXRlbGltaXQKICAgICAgICBlbnY6CiAgICAgICAgICBHSF9UT0tFTjogJHt7IHNlY3JldHMuR0lUSFVCX1RPS0VOIH19CiAgICAgICAgcnVuOiB8CiAgICAgICAgICBTSU5DRT0iJChkYXRlIC11IC1kICcyNCBob3VycyBhZ28nICslWS0lbS0lZFQlSDolTTolU1opIgogICAgICAgICAgQ09VTlQ9IiQoZ2ggcnVuIGxpc3QgLS1yZXBvICIke3sgZ2l0aHViLnJlcG9zaXRvcnkgfX0iIC0td29ya2Zsb3c9ZmFjdG9yeS10cmlnZ2VyLnltbCBcCiAgICAgICAgICAgIC0tanNvbiBjb25jbHVzaW9uLGNyZWF0ZWRBdCAtLWpxICJbLltdIHwgc2VsZWN0KC5jb25jbHVzaW9uPT1cInN1Y2Nlc3NcIiBhbmQgLmNyZWF0ZWRBdCA+PSBcIiRTSU5DRVwiKV0gfCBsZW5ndGgiKSIKICAgICAgICAgIGVjaG8gImNvdW50PSRDT1VOVCIgPj4gIiRHSVRIVUJfT1VUUFVUIgogICAgICAgICAgaWYgWyAiJENPVU5UIiAtZ2UgMyBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gInNraXA9dHJ1ZSIgPj4gIiRHSVRIVUJfT1VUUFVUIgogICAgICAgICAgICBlY2hvICJBbHJlYWR5ICRDT1VOVCBzdWNjZXNzZnVsIG9uLWRlbWFuZCB0cmlnZ2VycyBpbiB0aGUgbGFzdCAyNGggLS0gc2tpcHBpbmcgdG8gYXZvaWQgYSBydW5hd2F5IGxvb3AuIgogICAgICAgICAgZWxzZQogICAgICAgICAgICBlY2hvICJza2lwPWZhbHNlIiA+PiAiJEdJVEhVQl9PVVRQVVQiCiAgICAgICAgICBmaQoKICAgICAgLSBuYW1lOiBJbnNlcnQgYmFja2xvZyBpdGVtIGF0IHRoZSB0b3Agb2YgdGhlIHF1ZXVlCiAgICAgICAgaWY6IHN0ZXBzLnJhdGVsaW1pdC5vdXRwdXRzLnNraXAgPT0gJ2ZhbHNlJwogICAgICAgICMgSXNzdWUgdGl0bGUvYm9keSBhcmUgdW50cnVzdGVkIHRleHQ7IHBhc3MgdGhlbSB0aHJvdWdoIGVudiB2YXJzCiAgICAgICAgIyByYXRoZXIgdGhhbiBzcGxpY2luZyAkeyB7IH19IGRpcmVjdGx5IGludG8gdGhlIHNjcmlwdCBiZWxvdywgc28gYQogICAgICAgICMgdGl0bGUgbGlrZSBgIjsgcm0gLXJmIC4gI2AgY2FuJ3QgYnJlYWsgb3V0IG9mIHRoZSBxdW90ZWQgYXJndW1lbnQKICAgICAgICAjIGFuZCBydW4gYXMgc2hlbGwgaW4gYSBqb2Igd2l0aCBjb250ZW50czp3cml0ZSArIHRoZSBHQ1Aga2V5LgogICAgICAgIGVudjoKICAgICAgICAgIElTU1VFX1RJVExFOiAke3sgZ2l0aHViLmV2ZW50Lmlzc3VlLnRpdGxlIH19CiAgICAgICAgICBJU1NVRV9CT0RZOiAke3sgZ2l0aHViLmV2ZW50Lmlzc3VlLmJvZHkgfX0KICAgICAgICAgIElTU1VFX05VTUJFUjogJHt7IGdpdGh1Yi5ldmVudC5pc3N1ZS5udW1iZXIgfX0KICAgICAgICBydW46IHwKICAgICAgICAgIG5vZGUgLWUgJwogICAgICAgICAgICBjb25zdCBmcyA9IHJlcXVpcmUoImZzIik7CiAgICAgICAgICAgIGNvbnN0IHBhdGggPSAic29mdHdhcmUtZmFjdG9yeS9CQUNLTE9HLm1kIjsKICAgICAgICAgICAgY29uc3QgbGluZXMgPSBmcy5yZWFkRmlsZVN5bmMocGF0aCwgInV0ZjgiKS5zcGxpdCgiXG4iKTsKICAgICAgICAgICAgY29uc3QgaWR4ID0gbGluZXMuZmluZEluZGV4KChsKSA9PiBsLnN0YXJ0c1dpdGgoIi0gWyBdIikpOwogICAgICAgICAgICBjb25zdCBbdGl0bGUsIGJvZHlGaXJzdExpbmUsIGlzc3VlTnVtYmVyXSA9IHByb2Nlc3MuYXJndi5zbGljZSgxKTsKICAgICAgICAgICAgY29uc3QgZW50cnkgPSBgLSBbIF0gJHt0aXRsZX0g4oCUICR7Ym9keUZpcnN0TGluZSB8fCAiKHNlZSBpc3N1ZSBmb3IgZGV0YWlscykifSAocmVxdWVzdGVkIHZpYSBpc3N1ZSAjJHtpc3N1ZU51bWJlcn0pYDsKICAgICAgICAgICAgY29uc3QgaW5zZXJ0QXQgPSBpZHggPT09IC0xID8gbGluZXMubGVuZ3RoIDogaWR4OwogICAgICAgICAgICBsaW5lcy5zcGxpY2UoaW5zZXJ0QXQsIDAsIGVudHJ5KTsKICAgICAgICAgICAgZnMud3JpdGVGaWxlU3luYyhwYXRoLCBsaW5lcy5qb2luKCJcbiIpKTsKICAgICAgICAgICcgIiRJU1NVRV9USVRMRSIgIiQocHJpbnRmICclcycgIiRJU1NVRV9CT0RZIiB8IGhlYWQgLTEpIiAiJElTU1VFX05VTUJFUiIKCiAgICAgICAgICBnaXQgY29uZmlnIHVzZXIubmFtZSAiZmFjdG9yeS10cmlnZ2VyLWJvdCIKICAgICAgICAgIGdpdCBjb25maWcgdXNlci5lbWFpbCAiZmFjdG9yeS10cmlnZ2VyLWJvdEB1c2Vycy5ub3JlcGx5LmdpdGh1Yi5jb20iCiAgICAgICAgICBnaXQgYWRkIHNvZnR3YXJlLWZhY3RvcnkvQkFDS0xPRy5tZAogICAgICAgICAgZ2l0IGNvbW1pdCAtbSAiQWRkIG9uLWRlbWFuZCBiYWNrbG9nIGl0ZW0gZnJvbSBpc3N1ZSAjJHt7IGdpdGh1Yi5ldmVudC5pc3N1ZS5udW1iZXIgfX0iCiAgICAgICAgICAjIGFjdGlvbnMvY2hlY2tvdXQgbGVhdmVzIEhFQUQgZGV0YWNoZWQsIHNvIHB1c2ggZXhwbGljaXRseSB0byBtYXN0ZXIuCiAgICAgICAgICBnaXQgcHVzaCBvcmlnaW4gSEVBRDptYXN0ZXIKCiAgICAgIC0gaWQ6IGF1dGgKICAgICAgICBpZjogc3RlcHMucmF0ZWxpbWl0Lm91dHB1dHMuc2tpcCA9PSAnZmFsc2UnCiAgICAgICAgdXNlczogZ29vZ2xlLWdpdGh1Yi1hY3Rpb25zL2F1dGhAdjIKICAgICAgICB3aXRoOgogICAgICAgICAgY3JlZGVudGlhbHNfanNvbjogJHt7IHNlY3JldHMuR0NQX0ZBQ1RPUllfVFJJR0dFUl9TQV9LRVkgfX0KCiAgICAgIC0gaWY6IHN0ZXBzLnJhdGVsaW1pdC5vdXRwdXRzLnNraXAgPT0gJ2ZhbHNlJwogICAgICAgIHVzZXM6IGdvb2dsZS1naXRodWItYWN0aW9ucy9zZXR1cC1nY2xvdWRAdjIKCiAgICAgIC0gbmFtZTogU3RhcnQgdGhlIGZhY3RvcnkgVk0KICAgICAgICBpZjogc3RlcHMucmF0ZWxpbWl0Lm91dHB1dHMuc2tpcCA9PSAnZmFsc2UnCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBnY2xvdWQgY29tcHV0ZSBpbnN0YW5jZXMgc3RhcnQgZWdnbW9kZWxzLWZhY3Rvcnktdm0gXAogICAgICAgICAgICAtLXByb2plY3Q9IiR7eyB2YXJzLkZBQ1RPUllfR0NQX1BST0pFQ1RfSUQgfHwgJ2VnZ21vZGVscy1mYWN0b3J5JyB9fSIgXAogICAgICAgICAgICAtLXpvbmU9IiR7eyB2YXJzLkZBQ1RPUllfR0NQX1pPTkUgfHwgJ3VzLWNlbnRyYWwxLWEnIH19IgoKICAgICAgLSBuYW1lOiBBY2tub3dsZWRnZSBvbiB0aGUgaXNzdWUKICAgICAgICBpZjogc3RlcHMucmF0ZWxpbWl0Lm91dHB1dHMuc2tpcCA9PSAnZmFsc2UnCiAgICAgICAgZW52OgogICAgICAgICAgR0hfVE9LRU46ICR7eyBzZWNyZXRzLkdJVEhVQl9UT0tFTiB9fQogICAgICAgIHJ1bjogfAogICAgICAgICAgZ2ggaXNzdWUgY29tbWVudCAiJHt7IGdpdGh1Yi5ldmVudC5pc3N1ZS5udW1iZXIgfX0iIC0tcmVwbyAiJHt7IGdpdGh1Yi5yZXBvc2l0b3J5IH19IiAtLWJvZHkgXAogICAgICAgICAgICAiUXVldWVkIGF0IHRoZSB0b3Agb2Ygc29mdHdhcmUtZmFjdG9yeS9CQUNLTE9HLm1kIGFuZCBzdGFydGVkIHRoZSBmYWN0b3J5IFZNIC0tIGl0J2xsIHBpY2sgdGhpcyB1cCBhbmQgb3BlbiBhIFBSIHNob3J0bHkuIFdhdGNoIGh0dHBzOi8vZWdnLW1vZGVscy53ZWIuYXBwL2ZhY3RvcnkgZm9yIHRoZSBydW4gcmVjb3JkLiIKICAgICAgICAgIGdoIGlzc3VlIGNsb3NlICIke3sgZ2l0aHViLmV2ZW50Lmlzc3VlLm51bWJlciB9fSIgLS1yZXBvICIke3sgZ2l0aHViLnJlcG9zaXRvcnkgfX0iCgogICAgICAtIG5hbWU6IE5vdGUgdGhlIHNraXAgb24gdGhlIGlzc3VlCiAgICAgICAgaWY6IHN0ZXBzLnJhdGVsaW1pdC5vdXRwdXRzLnNraXAgPT0gJ3RydWUnCiAgICAgICAgZW52OgogICAgICAgICAgR0hfVE9LRU46ICR7eyBzZWNyZXRzLkdJVEhVQl9UT0tFTiB9fQogICAgICAgIHJ1bjogfAogICAgICAgICAgZ2ggaXNzdWUgY29tbWVudCAiJHt7IGdpdGh1Yi5ldmVudC5pc3N1ZS5udW1iZXIgfX0iIC0tcmVwbyAiJHt7IGdpdGh1Yi5yZXBvc2l0b3J5IH19IiAtLWJvZHkgXAogICAgICAgICAgICAiQWxyZWFkeSB0cmlnZ2VyZWQgJHt7IHN0ZXBzLnJhdGVsaW1pdC5vdXRwdXRzLmNvdW50IH19IG9uLWRlbWFuZCBydW5zIGluIHRoZSBsYXN0IDI0aCAtLSBza2lwcGluZyB0aGlzIG9uZSB0byBhdm9pZCBhIHJ1bmF3YXkgbG9vcC4gSXQnbGwgZ28gb3V0IHdpdGggdGhlIG5leHQgc2NoZWR1bGVkIHJ1biwgb3IgcmUtYXBwbHkgdGhlIGZhY3RvcnktcmVxdWVzdCBsYWJlbCBhZnRlciB0aGUgd2luZG93IHJlc2V0cy4iCg==
+name: On-demand factory trigger
+
+# Lets Eugenio kick off the factory right away instead of waiting for the
+# Monday schedule: label any issue `factory-request` (easy from the GitHub
+# mobile app) and this inserts it at the top of software-factory/BACKLOG.md
+# and starts the factory VM. See software-factory/README.md#on-demand-runs.
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: factory-trigger
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    if: github.event.label.name == 'factory-request' && github.event.issue.user.login == 'eugeniogarzag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Rate-limit on-demand triggers
+        id: ratelimit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SINCE="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          COUNT="$(gh run list --repo "${{ github.repository }}" --workflow=factory-trigger.yml \
+            --json conclusion,createdAt --jq "[.[] | select(.conclusion==\"success\" and .createdAt >= \"$SINCE\")] | length")"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -ge 3 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already $COUNT successful on-demand triggers in the last 24h -- skipping to avoid a runaway loop."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Insert backlog item at the top of the queue
+        if: steps.ratelimit.outputs.skip == 'false'
+        # Issue title/body are untrusted text; pass them through env vars
+        # rather than splicing ${{ }} directly into the script below, so a
+        # title like `"; rm -rf . #` can't break out of the quoted argument
+        # and run as shell in a job with contents:write + the GCP key.
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = "software-factory/BACKLOG.md";
+            const lines = fs.readFileSync(path, "utf8").split("\n");
+            const idx = lines.findIndex((l) => l.startsWith("- [ ]"));
+            const [title, bodyFirstLine, issueNumber] = process.argv.slice(1);
+            const entry = `- [ ] ${title} — ${bodyFirstLine || "(see issue for details)"} (requested via issue #${issueNumber})`;
+            const insertAt = idx === -1 ? lines.length : idx;
+            lines.splice(insertAt, 0, entry);
+            fs.writeFileSync(path, lines.join("\n"));
+          ' "$ISSUE_TITLE" "$(printf '%s' "$ISSUE_BODY" | head -1)" "$ISSUE_NUMBER"
+
+          git config user.name "factory-trigger-bot"
+          git config user.email "factory-trigger-bot@users.noreply.github.com"
+          git add software-factory/BACKLOG.md
+          git commit -m "Add on-demand backlog item from issue #${{ github.event.issue.number }}"
+          # actions/checkout leaves HEAD detached, so push explicitly to master.
+          git push origin HEAD:master
+
+      - id: auth
+        if: steps.ratelimit.outputs.skip == 'false'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_FACTORY_TRIGGER_SA_KEY }}
+
+      - if: steps.ratelimit.outputs.skip == 'false'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Start the factory VM
+        if: steps.ratelimit.outputs.skip == 'false'
+        run: |
+          gcloud compute instances start eggmodels-factory-vm \
+            --project="${{ vars.FACTORY_GCP_PROJECT_ID || 'eggmodels-factory' }}" \
+            --zone="${{ vars.FACTORY_GCP_ZONE || 'us-central1-a' }}"
+
+      - name: Acknowledge on the issue
+        if: steps.ratelimit.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body \
+            "Queued at the top of software-factory/BACKLOG.md and started the factory VM -- it'll pick this up and open a PR shortly. Watch https://egg-models.web.app/factory for the run record."
+          gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}"
+
+      - name: Note the skip on the issue
+        if: steps.ratelimit.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body \
+            "Already triggered ${{ steps.ratelimit.outputs.count }} on-demand runs in the last 24h -- skipping this one to avoid a runaway loop. It'll go out with the next scheduled run, or re-apply the factory-request label after the window resets."
