@@ -85,6 +85,22 @@ if [ "$FACTORY_MODE" = "self-improve" ]; then
     bash software-factory/self-hosted/self-improve.sh
   " || echo "self-improve.sh exited non-zero; see log above."
 else
+  # .github/workflows/factory-trigger.yml sets this (base64 JSON:
+  # {title, body, issueNumber}) right before starting the VM for an
+  # on-demand request. Read and clear it immediately, same reasoning as
+  # factory-mode above, then hand it to run-factory.sh as an env var --
+  # it takes priority over BACKLOG.md for this one run.
+  ON_DEMAND_REQUEST="$(curl -s -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/instance/attributes/on-demand-request" \
+    2>/dev/null || true)"
+  if [ -n "$ON_DEMAND_REQUEST" ]; then
+    ZONE_FULL="$(curl -s -H "Metadata-Flavor: Google" \
+      "http://metadata.google.internal/computeMetadata/v1/instance/zone")"
+    gcloud compute instances remove-metadata "$(hostname)" \
+      --zone="${ZONE_FULL##*/}" --keys=on-demand-request \
+      || echo "Could not clear on-demand-request metadata; it may be re-read next boot."
+  fi
+
   echo "Syncing last run's outcome (merge/CI/review status) as $FACTORY_USER."
   su - "$FACTORY_USER" -c "
     [ -f ~/.factory-env ] && . ~/.factory-env
@@ -95,7 +111,7 @@ else
   echo "Running the factory job as $FACTORY_USER."
   su - "$FACTORY_USER" -c "
     [ -f ~/.factory-env ] && . ~/.factory-env
-    FACTORY_IMPLEMENTER=\"\${FACTORY_IMPLEMENTER:-claude-code}\" bash /opt/factory/run-factory.sh
+    FACTORY_ON_DEMAND_REQUEST='${ON_DEMAND_REQUEST}' FACTORY_IMPLEMENTER=\"\${FACTORY_IMPLEMENTER:-claude-code}\" bash /opt/factory/run-factory.sh
   " || echo "run-factory.sh exited non-zero; see log above."
 fi
 

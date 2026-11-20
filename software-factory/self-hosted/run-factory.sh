@@ -3,6 +3,11 @@
 # software-factory/BACKLOG.md, has an agent implement it, and opens a PR.
 # Capped at one PR per run, matching the previous Claude-driven trigger.
 #
+# If FACTORY_ON_DEMAND_REQUEST is set (see .github/workflows/factory-trigger.yml
+# and software-factory/README.md#on-demand-runs), that request is implemented
+# instead, ahead of BACKLOG.md, and the triggering issue gets commented on
+# and closed once this run's PR opens.
+#
 # Implementer backend is chosen by $FACTORY_IMPLEMENTER:
 #   claude-code (default) -- headless Claude Code, billed against your
 #     Claude subscription via CLAUDE_CODE_OAUTH_TOKEN (see
@@ -55,12 +60,28 @@ git reset --hard "origin/$BASE_BRANCH"
 RUN_ID="run-$(date +%Y%m%d-%H%M%S)"
 STARTED_AT="$(iso_now)"
 
-# First unchecked backlog item, e.g.:
-#   - [ ] Centralize Cloud Functions URLs — Dashboard.js calls ...
-ITEM_LINE="$(grep -m1 '^- \[ \]' "$BACKLOG" || true)"
-if [ -z "$ITEM_LINE" ]; then
-  echo "No unchecked backlog items in $BACKLOG. Add one before the next run."
-  exit 0
+# An on-demand request (see .github/workflows/factory-trigger.yml and
+# software-factory/README.md#on-demand-runs) takes priority over the
+# backlog for this one run -- startup-script.sh passes it as base64 JSON
+# ({title, body, issueNumber}) via this env var, read off instance metadata
+# rather than committed to BACKLOG.md, since a GitHub Action can't push
+# straight to a protected master branch.
+ISSUE_NUMBER=""
+if [ -n "${FACTORY_ON_DEMAND_REQUEST:-}" ]; then
+  ON_DEMAND_FIELDS="$(echo "$FACTORY_ON_DEMAND_REQUEST" | base64 -d | node -e '
+    const req = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    process.stdout.write([req.title, req.body, req.issueNumber].join("\x1f"));
+  ')"
+  IFS=$'\x1f' read -r OD_TITLE OD_BODY ISSUE_NUMBER <<< "$ON_DEMAND_FIELDS"
+  ITEM_LINE="- [ ] ${OD_TITLE} — ${OD_BODY:-(see issue for details)} (requested via issue #${ISSUE_NUMBER})"
+else
+  # First unchecked backlog item, e.g.:
+  #   - [ ] Centralize Cloud Functions URLs — Dashboard.js calls ...
+  ITEM_LINE="$(grep -m1 '^- \[ \]' "$BACKLOG" || true)"
+  if [ -z "$ITEM_LINE" ]; then
+    echo "No unchecked backlog items in $BACKLOG. Add one before the next run."
+    exit 0
+  fi
 fi
 
 TITLE="$(echo "$ITEM_LINE" | sed -E 's/^- \[ \] ([^—]+)—.*/\1/' | sed -E 's/[[:space:]]+$//')"
@@ -83,11 +104,17 @@ record "$RUN_ID" "$(node -e '
 
 git checkout -b "$BRANCH"
 
-PROMPT="Implement this backlog item from software-factory/BACKLOG.md, keeping the change small and low-risk: ${ITEM_LINE#- [ ] }
+if [ -n "$ISSUE_NUMBER" ]; then
+  CHECKOFF_INSTRUCTION="This was requested on demand (issue #${ISSUE_NUMBER}), not a software-factory/BACKLOG.md item -- there's nothing to check off there."
+else
+  CHECKOFF_INSTRUCTION="Once done, check this item off in software-factory/BACKLOG.md by changing its '[ ]' to '[x]'."
+fi
+
+PROMPT="Implement this, keeping the change small and low-risk: ${ITEM_LINE#- [ ] }
 
 Do not touch functions/**, .github/workflows/**, firestore.rules, database.rules.json, firebase.json, or .firebaserc — those require manual review and would block auto-merge.
 
-Once done, check this item off in software-factory/BACKLOG.md by changing its '[ ]' to '[x]', and commit your changes."
+${CHECKOFF_INSTRUCTION} Commit your changes."
 
 case "$IMPLEMENTER" in
   claude-code)
@@ -108,6 +135,10 @@ esac
 if git diff --quiet "$BASE_BRANCH"; then
   echo "No changes made; skipping PR."
   record "$RUN_ID" "{\"status\":\"skipped_no_changes\",\"endedAt\":\"$(iso_now)\"}"
+  if [ -n "$ISSUE_NUMBER" ]; then
+    gh issue comment "$ISSUE_NUMBER" --repo eggmodels/EggModels \
+      --body "The factory looked at this but made no changes -- might need more detail, or it decided this wasn't a safe/small enough change to make unattended. Re-open or follow up with more specifics if you still want this done." || true
+  fi
   git checkout "$BASE_BRANCH"
   git branch -D "$BRANCH"
   exit 0
@@ -146,11 +177,18 @@ PR_URL="$(gh pr create \
   --label "factory-automated" \
   --body "Automated by the self-hosted software factory (implementer: ${IMPLEMENTER}; see software-factory/self-hosted/README.md).
 
-Backlog item: ${ITEM_LINE#- [ ] }
+${ISSUE_NUMBER:+Requested on demand via #${ISSUE_NUMBER}.
+
+}Backlog item: ${ITEM_LINE#- [ ] }
 
 Auto-merges once required CI checks pass, unless this diff touches a sensitive path (functions/**, workflow files, Firestore/RTDB rules) — see .github/workflows/factory-auto-merge.yml.
 
 Run record: factory_runs/${RUN_ID} (see the /factory dashboard).")"
+
+if [ -n "$ISSUE_NUMBER" ]; then
+  gh issue comment "$ISSUE_NUMBER" --repo eggmodels/EggModels --body "Implemented: ${PR_URL}" || true
+  gh issue close "$ISSUE_NUMBER" --repo eggmodels/EggModels || true
+fi
 
 PR_NUMBER="$(echo "$PR_URL" | grep -oE '[0-9]+$')"
 PR_OPENED_AT="$(iso_now)"

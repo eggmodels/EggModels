@@ -28,22 +28,25 @@ instead of only as settings tucked away in a Claude project.
 Labeling any GitHub issue `factory-request` (easy from the GitHub mobile
 app — new issue, title = what you want, apply the label) fires
 [`.github/workflows/factory-trigger.yml`](../.github/workflows/factory-trigger.yml),
-which inserts that issue at the **top** of `BACKLOG.md` (so it's picked
-next, not queued behind whatever's already there) and starts the factory
-VM right away instead of waiting for Monday. It comments on the issue once
-queued and closes it.
+which flags the factory VM's next boot with that request (as instance
+metadata) and starts it, instead of waiting for Monday.
+`run-factory.sh` reads that flag and implements the request directly —
+ahead of, and instead of, whatever's next in `BACKLOG.md` for that one
+run — then comments on the issue with the resulting PR and closes it.
+
+The request is passed as VM instance metadata rather than a commit to
+`BACKLOG.md`: `master` is a protected branch (requires a PR + passing
+checks), so a GitHub Action can't push straight to it, and opening a PR
+just to queue a backlog item adds latency and complexity for no benefit
+over handing the request to the VM directly.
 
 Only fires for issues from Eugenio's own account, and is capped at 3
 successful triggers per rolling 24h (checked against this workflow's own
-run history — no extra state to maintain) to guard against a runaway loop;
-starting an already-running VM is a no-op, so an overlapping trigger never
-doubles up a run. The weekly Monday schedule still runs independently as a
-free fallback.
-
-A direct push to `BACKLOG.md` was considered as a second trigger (so
-editing it from the GitHub app would also work) but skipped: the factory's
-own commits touch that same file when checking off a backlog item, which
-would risk the factory re-triggering itself on every run it finishes.
+run history — no extra state to maintain) to guard against a runaway loop.
+Starting an already-running VM is a no-op — if a run is already in
+progress, the request just waits as the VM's metadata until its next real
+boot, so nothing doubles up but a trigger can sit queued a little while.
+The weekly Monday schedule still runs independently as a free fallback.
 
 ## Auto-merge policy
 
