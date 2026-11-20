@@ -2,8 +2,12 @@ name: On-demand factory trigger
 
 # Lets Eugenio kick off the factory right away instead of waiting for the
 # Monday schedule: label any issue `factory-request` (easy from the GitHub
-# mobile app) and this inserts it at the top of software-factory/BACKLOG.md
-# and starts the factory VM. See software-factory/README.md#on-demand-runs.
+# mobile app) and this flags the factory VM's next boot with the request
+# (as instance metadata -- NOT a commit to BACKLOG.md, since master is a
+# protected branch and this workflow has no way to open+auto-merge a PR
+# fast enough to matter) and starts it. run-factory.sh reads the flag and
+# implements that request this run, ahead of the backlog. See
+# software-factory/README.md#on-demand-runs.
 on:
   issues:
     types: [labeled]
@@ -17,12 +21,9 @@ jobs:
     if: github.event.label.name == 'factory-request' && github.event.issue.user.login == 'eugeniogarzag'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       issues: write
       actions: read
     steps:
-      - uses: actions/checkout@v7
-
       - name: Rate-limit on-demand triggers
         id: ratelimit
         env:
@@ -39,28 +40,6 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Insert backlog item at the top of the queue
-        if: steps.ratelimit.outputs.skip == 'false'
-        run: |
-          node -e '
-            const fs = require("fs");
-            const path = "software-factory/BACKLOG.md";
-            const lines = fs.readFileSync(path, "utf8").split("\n");
-            const idx = lines.findIndex((l) => l.startsWith("- [ ]"));
-            const [title, bodyFirstLine, issueNumber] = process.argv.slice(1);
-            const entry = `- [ ] ${title} — ${bodyFirstLine || "(see issue for details)"} (requested via issue #${issueNumber})`;
-            const insertAt = idx === -1 ? lines.length : idx;
-            lines.splice(insertAt, 0, entry);
-            fs.writeFileSync(path, lines.join("\n"));
-          ' "${{ github.event.issue.title }}" "$(echo "${{ github.event.issue.body }}" | head -1)" "${{ github.event.issue.number }}"
-
-          git config user.name "factory-trigger-bot"
-          git config user.email "factory-trigger-bot@users.noreply.github.com"
-          git add software-factory/BACKLOG.md
-          git commit -m "Add on-demand backlog item from issue #${{ github.event.issue.number }}"
-          # actions/checkout leaves HEAD detached, so push explicitly to master.
-          git push origin HEAD:master
-
       - id: auth
         if: steps.ratelimit.outputs.skip == 'false'
         uses: google-github-actions/auth@v2
@@ -70,9 +49,18 @@ jobs:
       - if: steps.ratelimit.outputs.skip == 'false'
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Start the factory VM
+      - name: Flag the VM's next boot with this request, then start it
         if: steps.ratelimit.outputs.skip == 'false'
         run: |
+          PAYLOAD="$(node -e '
+            console.log(JSON.stringify({ title: process.argv[1], body: process.argv[2], issueNumber: process.argv[3] }));
+          ' "${{ github.event.issue.title }}" "$(echo "${{ github.event.issue.body }}" | head -1)" "${{ github.event.issue.number }}" | base64 -w0)"
+
+          gcloud compute instances add-metadata eggmodels-factory-vm \
+            --project="${{ vars.FACTORY_GCP_PROJECT_ID || 'eggmodels-factory' }}" \
+            --zone="${{ vars.FACTORY_GCP_ZONE || 'us-central1-a' }}" \
+            --metadata=on-demand-request="$PAYLOAD"
+
           gcloud compute instances start eggmodels-factory-vm \
             --project="${{ vars.FACTORY_GCP_PROJECT_ID || 'eggmodels-factory' }}" \
             --zone="${{ vars.FACTORY_GCP_ZONE || 'us-central1-a' }}"
@@ -83,8 +71,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body \
-            "Queued at the top of software-factory/BACKLOG.md and started the factory VM -- it'll pick this up and open a PR shortly. Watch https://egg-models.web.app/factory for the run record."
-          gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}"
+            "Started the factory VM for this -- if it's already running (e.g. a weekly run in progress), this is queued for its next boot instead. The factory will comment here again and close this issue once it opens a PR. Watch https://egg-models.web.app/factory for the run record."
 
       - name: Note the skip on the issue
         if: steps.ratelimit.outputs.skip == 'true'
