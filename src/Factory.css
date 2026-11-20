@@ -1,0 +1,67 @@
+.factory-page {
+  text-align: center;
+  color: var(--color-text);
+  padding: 0 var(--space-3);
+}
+
+.factory-subtitle {
+  max-width: 600px;
+  margin: 0 auto var(--space-4);
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.factory-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.factory-tab {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background-color: var(--color-accent);
+  cursor: pointer;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.factory-tab.active {
+  font-weight: bold;
+  outline: 2px solid var(--color-muted);
+}
+
+.factory-table-container {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 0 var(--space-2);
+}
+
+.factory-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.factory-table th,
+.factory-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: center;
+}
+
+.factory-table th {
+  background-color: var(--color-accent);
+  border-radius: var(--radius);
+}
+
+.factory-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--color-muted);
+}
+
+.factory-note {
+  max-width: 600px;
+  margin: var(--space-4) auto 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}

@@ -49,6 +49,51 @@ enforces this as code instead of leaving it as a verbal policy:
 three steps above as reusable Claude Code subagents. They're the same shape
 as the 2026-09-17 batch of 7 parallel-agent PRs, so a thread can spin up
 several of these at once for a larger backlog push instead of one at a time.
+[`factory-self-improver.md`](../.claude/agents/factory-self-improver.md) is
+a fourth role, used only by the monthly self-improvement loop below.
+
+## Metrics
+
+Every run of `software-factory/self-hosted/run-factory.sh` writes a document
+to the `factory_runs` Firestore collection in `egg-models`
+(`software-factory/self-hosted/record-run/record-run.mjs`), and
+`sync-run-outcomes.sh` fills in what isn't known yet when the PR opens (CI
+pass/fail, merged, human review comments, PR→merge time) a few days later,
+once GitHub has settled. See [`src/types/factory.ts`](../src/types/factory.ts)
+for the full shape of a run record.
+
+Each run's diff also gets a quick LLM-as-judge pass before the PR opens
+(stayed in scope / no redundant tests / followed repo conventions), stored
+under `scores` on the same record.
+
+The `/factory` page (unlisted, like `/performance`) reads this collection
+directly and shows Productivity, Spending, and Scorers tabs. Spending is
+compute cost only (`FACTORY_VM_HOURLY_USD` × run duration) against the
+$10/mo cap in `gcp/README.md` — per-run token cost isn't obtainable from a
+Claude subscription the way it would be from a metered API key, so that
+field stays absent rather than showing a fabricated number.
+
+Writes to `factory_runs` require a dedicated Firestore-scoped service
+account on the VM — see `gcp/README.md`, "Factory run-logging service
+account". Nothing about picking, implementing, or opening PRs depends on
+it; a missing key just means the run isn't recorded.
+
+## Self-improvement loop
+
+Separately from the weekly backlog cycle, a monthly job
+(`software-factory/self-hosted/self-improve.sh`, scheduled by
+`gcp/06-schedule-self-improvement.sh`) reads recent `factory_runs` for a
+repeated scorer failure or recurring review friction (the same kind of
+mistake showing up 3+ times, not a handful of unrelated one-offs), and —
+only if it finds one — opens a PR editing the factory's own definition: an
+agent prompt in `.claude/agents/`, `BACKLOG.md`'s guidance text, or this
+README, following the `factory-self-improver` role.
+
+That PR is labeled `factory-self-improvement`, which
+`.github/workflows/factory-auto-merge.yml` doesn't listen for (it only
+watches `factory-automated`) — so it **always** waits for Eugenio's review,
+by construction, not just by policy. If no clear pattern exists yet, the
+job makes no change and does nothing further that cycle.
 
 ## Changing the factory
 

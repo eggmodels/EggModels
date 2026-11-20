@@ -58,8 +58,9 @@ export BUDGET_AMOUNT=10                       # USD/month cap
 ./02-create-vm.sh
 ./03-schedule-weekly-run.sh
 ./04-set-budget.sh
-./05-deploy-kill-switch.sh   # optional but recommended: auto-stops the VM
-                              # if spend ever exceeds the budget
+./05-deploy-kill-switch.sh            # optional but recommended: auto-stops
+                                        # the VM if spend ever exceeds the budget
+./06-schedule-self-improvement.sh     # optional: monthly self-improvement run
 ```
 
 `02-create-vm.sh` creates the VM, with `startup-script.sh` and `run-factory.sh`
@@ -80,6 +81,7 @@ gcloud compute ssh eggmodels-factory-vm --zone=us-central1-a
   gh auth login
   git clone https://github.com/eggmodels/EggModels.git ~/eggmodels-factory
   claude setup-token   # if using the default claude-code implementer
+  bash ~/eggmodels-factory/software-factory/self-hosted/setup-record-run.sh
 ```
 
 `claude setup-token` prints a token on its last line. The startup script
@@ -95,6 +97,38 @@ If you're using the `aider` implementer instead (`FACTORY_IMPLEMENTER=aider`),
 put your Anthropic/OpenAI API key in the same file the same way:
 `export ANTHROPIC_API_KEY=...`.
 
+### Factory run-logging service account
+
+Every run writes a record (backlog item, PR, timings, scorer results) to the
+`factory_runs` Firestore collection in `egg-models` — see
+[`../../README.md#metrics`](../README.md). That needs its own service
+account, separate from this VM's default GCE one, scoped to Firestore only:
+
+```bash
+gcloud iam service-accounts create factory-run-logger \
+  --project=egg-models \
+  --display-name="Software factory run logger"
+
+gcloud projects add-iam-policy-binding egg-models \
+  --member="serviceAccount:factory-run-logger@egg-models.iam.gserviceaccount.com" \
+  --role="roles/datastore.user"
+
+gcloud iam service-accounts keys create factory-firestore-key.json \
+  --iam-account=factory-run-logger@egg-models.iam.gserviceaccount.com
+```
+
+Copy `factory-firestore-key.json` onto the VM as the `factory` user (e.g.
+`gcloud compute scp` while the VM is running), then:
+
+```bash
+chmod 600 ~/factory-firestore-key.json
+echo 'export FACTORY_FIRESTORE_SA_KEY_PATH=/home/factory/factory-firestore-key.json' >> ~/.factory-env
+```
+
+Without this, `run-factory.sh` and `sync-run-outcomes.sh` still work — they
+log a warning and skip the Firestore write, same as if `CLAUDE_CODE_OAUTH_TOKEN`
+were the only thing missing on a brand-new VM.
+
 Then exit back out and stop the VM:
 
 ```bash
@@ -107,6 +141,22 @@ After that, `03-schedule-weekly-run.sh`'s Cloud Scheduler job starts the VM
 unattended every week; the startup script runs the factory job as `factory`
 non-interactively and shuts the VM down when it's done (success or failure),
 so it never runs longer than one job takes.
+
+## Self-improvement loop
+
+`06-schedule-self-improvement.sh` deploys a small HTTP Cloud Function
+(`self-improve-trigger/`) and a monthly Cloud Scheduler job that calls it.
+The function flags the next boot (an instance metadata key, `factory-mode`)
+as a self-improvement run instead of the usual weekly backlog run, then
+starts the VM; `startup-script.sh` reads and clears that flag and runs
+`self-improve.sh` instead of `run-factory.sh` for that one boot. See
+[`../README.md#self-improvement-loop`](../README.md) for what that run
+actually does — it never auto-merges, and needs the same
+`FACTORY_FIRESTORE_SA_KEY_PATH` as run logging to have anything to learn
+from.
+
+Cost is negligible: one extra VM boot a month (same e2-small rate as the
+weekly run) plus a Cloud Function invocation well within the free tier.
 
 ## Kill switch
 

@@ -10,6 +10,7 @@ import Tennis from './components/Tennis';
 import Dashboard from './components/Dashboard';
 import ScheduleMLB from './components/ScheduleMLB';
 import Performance from './components/Performance';
+import FactoryDashboard from './components/FactoryDashboard';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/mlb" element={<ScheduleMLB />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/performance" element={<Performance />} />
+          <Route path="/factory" element={<FactoryDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
