@@ -64,20 +64,27 @@ export BUDGET_AMOUNT=10                       # USD/month cap
 
 `02-create-vm.sh` creates the VM, with `startup-script.sh` and `run-factory.sh`
 passed in as instance metadata (no disk image baking needed). Creation briefly
-starts it once to install dependencies, then it shuts itself back down. The
-*next* start (do this once, manually) is for you to run interactively:
-`gcloud compute ssh ...`, finish `gh auth login` and `claude setup-token`,
-then stop the VM again. After that, `03-schedule-weekly-run.sh`'s Cloud
-Scheduler job starts it unattended every week; the startup script runs the
-factory job non-interactively and shuts the VM down when it's done (success
-or failure), so it never runs longer than one job takes.
+starts it once to install dependencies and create a non-root `factory` user,
+then it shuts itself back down.
 
-### Saving the token from `claude setup-token`
+### One-time manual step, as the `factory` user
+
+Claude Code refuses to run `--dangerously-skip-permissions` as root, so the
+job runs as a dedicated `factory` user, not root -- do the one-time
+interactive setup as that user too:
+
+```bash
+gcloud compute instances start eggmodels-factory-vm --zone=us-central1-a
+gcloud compute ssh eggmodels-factory-vm --zone=us-central1-a
+  sudo su - factory
+  gh auth login
+  git clone https://github.com/eggmodels/EggModels.git ~/eggmodels-factory
+  claude setup-token   # if using the default claude-code implementer
+```
 
 `claude setup-token` prints a token on its last line. The startup script
-sources `~/.factory-env` (i.e. `/root/.factory-env` when you're root over
-SSH, which you are by default on this VM) right before running the job, so
-save it there:
+sources `~/.factory-env` (i.e. `/home/factory/.factory-env`) as the `factory`
+user right before running the job, so save it there, still as `factory`:
 
 ```bash
 echo 'export CLAUDE_CODE_OAUTH_TOKEN=paste-the-printed-token-here' >> ~/.factory-env
@@ -87,6 +94,19 @@ chmod 600 ~/.factory-env
 If you're using the `aider` implementer instead (`FACTORY_IMPLEMENTER=aider`),
 put your Anthropic/OpenAI API key in the same file the same way:
 `export ANTHROPIC_API_KEY=...`.
+
+Then exit back out and stop the VM:
+
+```bash
+exit        # back to root
+exit        # back to Cloud Shell
+gcloud compute instances stop eggmodels-factory-vm --zone=us-central1-a
+```
+
+After that, `03-schedule-weekly-run.sh`'s Cloud Scheduler job starts the VM
+unattended every week; the startup script runs the factory job as `factory`
+non-interactively and shuts the VM down when it's done (success or failure),
+so it never runs longer than one job takes.
 
 ## Kill switch
 
