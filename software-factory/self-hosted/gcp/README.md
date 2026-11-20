@@ -61,6 +61,7 @@ export BUDGET_AMOUNT=10                       # USD/month cap
 ./05-deploy-kill-switch.sh            # optional but recommended: auto-stops
                                         # the VM if spend ever exceeds the budget
 ./06-schedule-self-improvement.sh     # optional: monthly self-improvement run
+./07-create-github-trigger-sa.sh      # optional: lets a GitHub issue start a run on demand
 ```
 
 `02-create-vm.sh` creates the VM, with `startup-script.sh` and `run-factory.sh`
@@ -157,6 +158,23 @@ from.
 
 Cost is negligible: one extra VM boot a month (same e2-small rate as the
 weekly run) plus a Cloud Function invocation well within the free tier.
+
+## On-demand runs
+
+`07-create-github-trigger-sa.sh` creates a service account scoped to just
+"start this one VM" and exports a key for it. Add that key as a GitHub
+Actions secret:
+
+```bash
+gh secret set GCP_FACTORY_TRIGGER_SA_KEY --repo eggmodels/EggModels < factory-github-trigger-key.json
+shred -u factory-github-trigger-key.json   # or: rm -f factory-github-trigger-key.json
+```
+
+See [`../README.md#on-demand-runs`](../README.md) for what it's for — a
+GitHub issue labeled `factory-request` then starts a run immediately
+instead of waiting for Monday. The `factory-request` label needs to exist
+on the repo once (Issues → Labels → New label, or it's created the first
+time anything applies it).
 
 ## Kill switch
 

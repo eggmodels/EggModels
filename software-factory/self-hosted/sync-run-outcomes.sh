@@ -11,7 +11,8 @@
 set -euo pipefail
 
 WORKDIR="${FACTORY_WORKDIR:-$HOME/eggmodels-factory}"
-RECORD_RUN="$WORKDIR/software-factory/self-hosted/record-run/record-run.mjs"
+RECORD_RUN_DIR="$WORKDIR/software-factory/self-hosted/record-run"
+RECORD_RUN="$RECORD_RUN_DIR/record-run.mjs"
 KEY_PATH="${FACTORY_FIRESTORE_SA_KEY_PATH:-}"
 
 cd "$WORKDIR"
@@ -21,11 +22,17 @@ if [ -z "$KEY_PATH" ] || [ ! -f "$KEY_PATH" ]; then
   exit 0
 fi
 
+# Same on-demand install as run-factory.sh -- see its comment for why.
+if [ ! -d "$RECORD_RUN_DIR/node_modules" ]; then
+  (cd "$RECORD_RUN_DIR" && npm install --omit=dev) || \
+    echo "sync-run-outcomes.sh: couldn't install record-run's dependencies; skipping."
+fi
+
 # Pending runs: fetched via a tiny inline node script using the same
 # firebase-admin install as record-run.mjs, since there's no `gh`-equivalent
 # for querying Firestore. Run from record-run/, the only place firebase-admin
 # is installed.
-PENDING_JSON="$(cd "$(dirname "$RECORD_RUN")" && node --input-type=module -e '
+PENDING_JSON="$(cd "$RECORD_RUN_DIR" && node --input-type=module -e '
 import { readFileSync } from "node:fs";
 import { initializeApp } from "firebase-admin/app";
 import { cert } from "firebase-admin/app";
