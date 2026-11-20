@@ -59,11 +59,45 @@ if [ ! -d "$FACTORY_HOME/eggmodels-factory" ]; then
   exit 0
 fi
 
-echo "Running the factory job as $FACTORY_USER."
-su - "$FACTORY_USER" -c "
-  [ -f ~/.factory-env ] && . ~/.factory-env
-  FACTORY_IMPLEMENTER=\"\${FACTORY_IMPLEMENTER:-claude-code}\" bash /opt/factory/run-factory.sh
-" || echo "run-factory.sh exited non-zero; see log above."
+# self-improve-trigger/ (see 06-schedule-self-improvement.sh) sets this
+# metadata attribute right before starting the VM for the monthly
+# self-improvement run. Read and clear it immediately, before doing any
+# work, so a crash mid-run still leaves the VM defaulting to the normal
+# weekly flow next time rather than getting stuck in self-improve mode.
+FACTORY_MODE="$(curl -s -H "Metadata-Flavor: Google" \
+  "http://metadata.google.internal/computeMetadata/v1/instance/attributes/factory-mode" \
+  2>/dev/null || echo "weekly")"
+
+if [ "$FACTORY_MODE" = "self-improve" ]; then
+  # Reset immediately (the VM's own service account has cloud-platform
+  # scope, see 02-create-vm.sh) so a crash mid-run still leaves next boot
+  # defaulting to the normal weekly flow instead of stuck in self-improve.
+  ZONE_FULL="$(curl -s -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/instance/zone")"
+  gcloud compute instances remove-metadata "$(hostname)" \
+    --zone="${ZONE_FULL##*/}" --keys=factory-mode \
+    || echo "Could not clear factory-mode metadata; next boot may re-run self-improve."
+
+  echo "Running the monthly self-improvement job as $FACTORY_USER."
+  su - "$FACTORY_USER" -c "
+    [ -f ~/.factory-env ] && . ~/.factory-env
+    cd ~/eggmodels-factory && git pull --ff-only origin master
+    bash software-factory/self-hosted/self-improve.sh
+  " || echo "self-improve.sh exited non-zero; see log above."
+else
+  echo "Syncing last run's outcome (merge/CI/review status) as $FACTORY_USER."
+  su - "$FACTORY_USER" -c "
+    [ -f ~/.factory-env ] && . ~/.factory-env
+    cd ~/eggmodels-factory && git pull --ff-only origin master
+    bash software-factory/self-hosted/sync-run-outcomes.sh
+  " || echo "sync-run-outcomes.sh exited non-zero; see log above."
+
+  echo "Running the factory job as $FACTORY_USER."
+  su - "$FACTORY_USER" -c "
+    [ -f ~/.factory-env ] && . ~/.factory-env
+    FACTORY_IMPLEMENTER=\"\${FACTORY_IMPLEMENTER:-claude-code}\" bash /opt/factory/run-factory.sh
+  " || echo "run-factory.sh exited non-zero; see log above."
+fi
 
 echo "Done. Shutting down."
 shutdown -h now

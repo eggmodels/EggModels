@@ -1,0 +1,10 @@
+{
+  "name": "factory-record-run",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Writes software-factory run records to the egg-models Firestore `factory_runs` collection. See ../record-run.mjs.",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

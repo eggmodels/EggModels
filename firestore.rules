@@ -11,6 +11,16 @@ service cloud.firestore {
       allow read;
     }
 
+    // Software-factory run records (see software-factory/README.md). Public
+    // read so the /factory dashboard can render client-side, like every
+    // other collection here; writes only ever come from the factory VM's
+    // service account via the Admin SDK, which bypasses these rules, so
+    // client writes are denied.
+    match /factory_runs/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Deny all other access by default
     match /{document=**} {
       allow read, write: if false;
