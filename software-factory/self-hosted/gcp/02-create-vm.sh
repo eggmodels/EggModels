@@ -35,10 +35,11 @@ VM created. Its first boot ran, installed dependencies, and shut itself
 down automatically -- stopped is this VM's normal resting state.
 
 One-time manual step before the weekly schedule can work unattended (the
-repo isn't cloned and nothing is authenticated yet):
+repo isn't cloned and nothing is authenticated yet). Do this as the
+'factory' user, NOT root -- Claude Code refuses to run unattended as root:
   gcloud compute instances start eggmodels-factory-vm --zone=us-central1-a
   gcloud compute ssh eggmodels-factory-vm --zone=us-central1-a
-    # on the VM, as root (sudo -i):
+    sudo su - factory
     gh auth login
     git clone https://github.com/eggmodels/EggModels.git ~/eggmodels-factory
     claude setup-token   # if using the default claude-code implementer
